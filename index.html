@@ -40,6 +40,7 @@ img{max-width:100%}
   --food:#fb923c;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.5}
 .wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:12px 96px}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -101,11 +102,11 @@ h2{margin:0 0 10px;font-size:17px}
 
 /* ex cards */
 .list{display:grid;gap:10px}
-.ex{display:grid;grid-template-columns:104px 1fr auto;gap:12px;align-items:center;border:1.5px solid var(--accent);border-radius:16px;padding:8px;background:var(--panel);box-shadow:var(--shadow);text-align:left;width:100%;position:relative}
+.ex{display:grid;grid-template-columns:104px 24px 1fr auto;gap:10px;align-items:center;border:1.5px solid var(--accent);border-radius:16px;padding:8px;background:var(--panel);box-shadow:var(--shadow);text-align:left;width:100%;position:relative}
 .ex img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:10px;border:1.5px solid var(--accent);display:block}
-.ex .n{width:24px;height:24px;border-radius:7px;background:var(--accent);color:#fff;font-size:12px;display:grid;place-items:center;font-weight:700;margin-top:1px}
-.ex .body{min-width:0;display:grid;grid-template-columns:24px 1fr;column-gap:9px;row-gap:1px;align-content:start}
-.ex .body>*{grid-column:2;display:block}.ex .body>.n{grid-column:1;grid-row:1}.ex .body>.name{grid-row:1}
+.ex .n{width:24px;height:24px;border-radius:7px;background:var(--accent);color:#fff;font-size:12px;display:grid;place-items:center;font-weight:700;align-self:center}
+.ex .body{min-width:0;display:grid;row-gap:1px;align-content:center}
+.ex .body>*{display:block}
 .ex .name{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
 .ex .spec{font-size:14.5px;margin-top:2px}
 .ex .note{font-size:12px;margin-top:3px;font-weight:700}
@@ -172,6 +173,12 @@ h2{margin:0 0 10px;font-size:17px}
 .filebtn input{display:none}
 .aiout{font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap}
 
+.mgrp h4{margin:10px 0 4px;font-size:12.5px;color:var(--muted)}
+.mrow{border-top:1px solid var(--line);padding:7px 0}
+.mchk{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
+.mchk input{width:18px;height:18px;margin:0}
+.mf{margin-top:6px;grid-template-columns:repeat(3,1fr)}
+
 /* calendar */
 .cal{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px}
 .cal .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -208,9 +215,8 @@ h2{margin:0 0 10px;font-size:17px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:700;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 @media (max-width:460px){
-  .ex{grid-template-columns:86px 1fr auto;gap:8px}
+  .ex{grid-template-columns:86px 22px 1fr auto;gap:7px}
   .ex .n{width:22px;height:22px}
-  .ex .body{grid-template-columns:22px 1fr;column-gap:7px}
   .ex .name{font-size:16.5px}.ex .spec{font-size:13px}
   .head h1{font-size:28px}
   .tiles{grid-template-columns:repeat(2,1fr)}
@@ -304,7 +310,8 @@ h2{margin:0 0 10px;font-size:17px}
         <label>목표 체중 (kg)<input id="gWeight" type="number" step="0.1" inputmode="decimal"></label>
         <label>목표 기한<input id="gDate" type="date"></label>
         <label>주당 운동 일수<select id="gDays"><option>3</option><option>4</option><option selected>5</option><option>6</option></select></label>
-        <label class="wide">운동 설정 방식<select id="gAuto"><option value="1" selected>자동 (전일 이력·부위 분석해서 매일 조정)</option><option value="0">고정 (요일별 기본 루틴 그대로)</option></select></label>
+        <label class="wide">루틴 순서<select id="gMode"><option value="rotation" selected>부위 순환 (상체→유산소→하체→유산소→전신→유산소→회복, 완료 기록 기준으로 다음 루틴 결정)</option><option value="weekday">요일 고정 (월 상체 · 화 유산소 · 수 하체 …)</option></select></label>
+        <label class="wide">세부 조정<select id="gAuto"><option value="1" selected>자동 (전일 이력·통증 분석해서 세트·중량 조정)</option><option value="0">고정 (기본 수치 그대로)</option></select></label>
       </div>
       <div class="acts"><button class="btn pri" id="saveProfile">프로필·목표 저장 후 분석</button></div>
       <div class="analysis" id="analysis"></div>
@@ -337,7 +344,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.4</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.5</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -356,12 +363,13 @@ h2{margin:0 0 10px;font-size:17px}
 
     <div class="card">
       <h2>데이터</h2>
+      <div class="acts" style="margin-top:0;margin-bottom:10px"><button class="btn" id="manualLog">지난 운동 직접 입력</button></div>
       <p class="help">기록은 이 브라우저에만 저장됩니다. 백업이 필요하면 내보내기 텍스트를 복사해 두세요. (음식 사진은 용량 때문에 내보내기에서 제외됩니다)</p>
       <div class="acts"><button class="btn" id="exportBtn">내보내기(복사)</button><button class="btn" id="importBtn">가져오기</button><button class="btn danger" id="resetBtn">초기화</button></div>
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.4 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.5 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -644,11 +652,36 @@ function lastPain(k){ // 최근 3일 내 통증 기록
   const w=S.weekly.filter(x=>x.date<=k && x.date>=shift(k,-3) && x.pain!=null).sort((a,b)=>a.date<b.date?1:-1)[0];
   return w||null;
 }
-function trainedGroups(k){ // 해당 날 완료된 근력 부위 → {g: sets}
-  const day=planFor(k,true), log=S.log[k]||{}, out={};
-  day.ex.forEach(e=>{ const r=log[e.id]; if(r&&r.done&&(e.type==='strength'||e.type==='time')) out[e.g]=(out[e.g]||0)+Number(r.sets??e.sets); });
+function trainedGroups(k){ // 해당 날 완료된 근력 부위 → {g: sets} (기록 자체에 저장된 부위·세트 사용)
+  const log=S.log[k]||{}, out={};
+  for(const id in log){ const r=log[id]; if(!r.done) continue; const e=EXBYID[id]; const g=r.g||(e&&e.g); if(!g||g==='cardio'||g==='none') continue; out[g]=(out[g]||0)+Number(r.sets??(e&&e.sets)??1); }
   return out;
 }
+/* 전체 운동 목록(이름 기준 중복 제거) · id → 운동 정의 */
+const EXBYID={}; Object.values(ROUTINE).forEach(d=>d.ex.forEach(e=>EXBYID[e.id]=e));
+const EXALL=(()=>{const seen=new Set(),out=[]; [1,3,5,2,4,6,0].forEach(w=>ROUTINE[w].ex.forEach(e=>{ if(e.type==='rest'||seen.has(e.name)) return; seen.add(e.name); out.push(e); })); return out;})();
+/* ---------- 부위 순환 ---------- */
+const ROT=[1,2,3,4,5,6,0]; // 상체 → 저강도유산소 → 하체 → 관절보호유산소 → 전신 → 지방연소유산소 → 회복
+const hasDone=k=>{const l=S.log[k]; return !!l&&Object.values(l).some(r=>r.done);};
+function inferTpl(k){ const p=S.plan[k]; if(p&&p.tpl!=null) return p.tpl; const cnt={}; for(const id in (S.log[k]||{})){ const m=id.match(/^(mon|tue|wed|thu|fri|sat|sun)/); if(m) cnt[m[1]]=(cnt[m[1]]||0)+1; }
+  const map={mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0}; let best=null,bn=0; for(const p in cnt) if(cnt[p]>bn){bn=cnt[p];best=map[p];} return best; }
+function lastLoggedTpl(k){ for(let i=1;i<=30;i++){ const kk=shift(k,-i); if(hasDone(kk)){ const tpl=inferTpl(kk); if(tpl!=null) return {tpl,k:kk}; } } return null; }
+const rotMemo={};
+function rotationTpl(k){
+  if(rotMemo[k]!=null) return rotMemo[k];
+  const today=key(new Date()); let out;
+  if(k>today){ const pk=shift(k,-1); const prev=(S.plan[pk]&&S.plan[pk].tpl!=null)?S.plan[pk].tpl:rotationTpl(pk).tpl; out={tpl:ROT[(ROT.indexOf(prev)+1)%7],why:'예정'}; }
+  else{
+    const last=lastLoggedTpl(k); let idx=last?(ROT.indexOf(last.tpl)+1)%7:0;
+    const t1=trainedGroups(shift(k,-1)), t2=trainedGroups(shift(k,-2)); out=null;
+    for(let s=0;s<7;s++){ const cand=ROT[(idx+s)%7]; const groups=[...new Set(ROUTINE[cand].ex.filter(e=>e.type==='strength'||e.type==='time').map(e=>e.g))];
+      const clash=groups.filter(g=>(t1[g]||0)>=3||(t1[g]||0)+(t2[g]||0)>=6);
+      if(!clash.length){ out={tpl:cand,why:s?`${ROUTINE[ROT[idx]].focus}은(는) 전일 훈련 부위(${clash.length?clash.map(x=>GNAME[x]).join('·'):[...new Set(ROUTINE[ROT[idx]].ex.filter(e=>e.type==='strength').map(e=>GNAME[e.g]))].join('·')})와 겹쳐 건너뜀`:(last?'':'첫 루틴')}; break; } }
+    if(!out) out={tpl:ROT[idx],why:''};
+  }
+  rotMemo[k]=out; return out;
+}
+function rotationLabel(tpl){ return `순환 ${ROT.indexOf(tpl)+1}/7 · ${ROUTINE[tpl].focus}`; }
 function lastRecord(exName,k){ // 같은 이름 운동의 직전 완료 기록 (최대 28일)
   for(let i=1;i<=28;i++){ const kk=shift(k,-i), log=S.log[kk]; if(!log) continue;
     for(const id in log){ const r=log[id]; if(r.done&&r.name===exName) return r; } }
@@ -657,8 +690,9 @@ function lastRecord(exName,k){ // 같은 이름 운동의 직전 완료 기록 (
 const clone=o=>JSON.parse(JSON.stringify(o));
 function planFor(k, raw){
   if(S.plan[k]) return S.plan[k];               // 완료 기록이 생기면 고정된 스냅샷
-  const d=fromKey(k), base=ROUTINE[d.getDay()];
-  const plan={name:base.name,focus:base.focus,color:base.color,ex:clone(base.ex),notes:[],auto:false};
+  const d=fromKey(k); const rot=(S.goal.mode||'rotation')==='rotation'?rotationTpl(k):null; const tplKey=rot?rot.tpl:d.getDay(); const base=ROUTINE[tplKey];
+  const plan={name:ROUTINE[d.getDay()].name,focus:base.focus,color:base.color,ex:clone(base.ex),notes:[],auto:false,tpl:tplKey};
+  if(rot){ plan.rot=rotationLabel(tplKey); if(rot.why&&rot.why!=='예정'&&rot.why!=='첫 루틴') plan.notes.push(rot.why); }
   if(raw || !Number(S.goal.auto)) return plan;
   plan.auto=true;
   const g=S.goal.type||'loss';
@@ -667,7 +701,7 @@ function planFor(k, raw){
   const pain=lastPain(k);
   const hasStrength=plan.ex.some(e=>e.type==='strength');
   // 1) 통증 5 이상 → 회복 모드
-  if(pain && pain.pain>=5 && d.getDay()!==0){
+  if(pain && pain.pain>=5 && tplKey!==0){
     const r=clone(RECOVERY); plan.focus=r.focus; plan.ex=r.ex; plan.notes.push(`통증 ${pain.pain}/10 기록 → 근력 대신 저강도 회복 루틴으로 전환`); return plan;
   }
   // 2) 전일 과부하(총 12세트 이상) + 오늘도 근력이면 → 세트 축소
@@ -700,7 +734,7 @@ function planFor(k, raw){
   if(g==='gain') plan.notes.push('근육 증가 목표: 필수 근력 +1세트, 유산소는 짧게');
   // 6) 주당 운동일수 초과 시 안내
   let cnt=0; for(let i=1;i<=6;i++){ const l=S.log[shift(k,-i)]; if(l&&Object.values(l).some(r=>r.done)) cnt++; }
-  if(cnt>=Number(S.goal.days||5)&&d.getDay()!==0) plan.notes.push(`최근 6일 중 ${cnt}일 운동 → 오늘은 필수만 가볍게 해도 충분합니다`);
+  if(cnt>=Number(S.goal.days||5)&&tplKey!==0) plan.notes.push(`최근 6일 중 ${cnt}일 운동 → 오늘은 필수만 가볍게 해도 충분합니다`);
   plan.ex.forEach(e=>{ e.spec=specOf(e); });
   return plan;
 }
@@ -773,25 +807,26 @@ const grade=s=>s>=80?['달성','ok']:s>=60?['보통','warn']:['미흡','bad'];
 /* ============ 렌더: 오늘 ============ */
 function setAccent(c){ document.documentElement.style.setProperty('--accent',c); }
 function renderToday(){
+  for(const x in rotMemo) delete rotMemo[x];
   const k=key(cur), st=dayStats(k), day=st.day, log=S.log[k]||{};
   setAccent(day.color);
   $('dateLabel').textContent=`${cur.getFullYear()}.${pad(cur.getMonth()+1)}.${pad(cur.getDate())} (${DAYS[cur.getDay()]})`;
   const start=new Date(cur); start.setDate(cur.getDate()-cur.getDay());
   $('dayChips').innerHTML=[...Array(7)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);const s=dayStats(key(d));
-    return `<button data-k="${key(d)}" class="${key(d)===k?'on':''}" style="--c:${ROUTINE[i].color}"><b>${DAYS[i]}</b><small class="num">${d.getDate()}</small><span class="dot ${s.hit?'full':s.any?'part':''}"></span></button>`;}).join('');
+    return `<button data-k="${key(d)}" class="${key(d)===k?'on':''}" style="--c:${s.day.color}"><b>${DAYS[i]}</b><small class="num">${d.getDate()}</small><span class="dot ${s.hit?'full':s.any?'part':''}"></span></button>`;}).join('');
   $('dayChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=fromKey(b.dataset.k);renderToday();});
   const pct=day.ex.length?Math.round(st.done.length/day.ex.length*100):0;
   let autoHtml='';
   if(day.auto){ autoHtml=`<div class="auto"><b>🤖 자동 설정${S.plan[k]?' (기록 시작 후 고정)':''}</b>${day.notes.length?'<ul>'+day.notes.map(n=>`<li>${n}</li>`).join('')+'</ul>':'전일 이력·통증 기록에 특이사항이 없어 기본 루틴 그대로 진행합니다.'}${!S.plan[k]?'<div class="acts"><button class="btn sm" id="useBase">기본 루틴으로 보기</button></div>':'<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button></div>'}</div>`; }
   else if(Number(S.goal.auto)&&S.plan[k]) autoHtml=`<div class="auto"><b>고정된 루틴</b>기록이 시작되어 오늘 루틴이 고정되었습니다.<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button></div></div>`;
-  $('head').innerHTML=`<h1>${day.name}</h1><div class="sub">${day.focus}</div><div class="hint">사진 → 이름 → 중량·횟수 순서로 확인</div>
+  $('head').innerHTML=`<h1>${day.name}</h1><div class="sub">${day.focus}</div><div class="hint">${day.rot?day.rot+' · ':''}사진 → 이름 → 중량·횟수 순서로 확인</div>
     <div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><span class="num">${st.done.length}/${day.ex.length} 완료 · 필수 ${st.mustDone.length}/${st.must.length}</span></div>${autoHtml}`;
   if($('useBase')) $('useBase').onclick=()=>{ S.plan[k]=clone(planFor(k,true)); S.plan[k].auto=false; save(); renderToday(); toast('오늘은 기본 루틴으로 진행합니다'); };
   if($('resetPlan')) $('resetPlan').onclick=()=>{ if(S.log[k]&&Object.keys(S.log[k]).length&&!confirm('오늘 완료 기록이 있습니다. 루틴을 다시 생성하면 기록과 항목이 어긋날 수 있습니다. 계속할까요?')) return; delete S.plan[k]; save(); renderToday(); };
   $('exList').innerHTML=day.ex.map((e,i)=>{const r=log[e.id]||{};const done=!!r.done;const kc=done?kcalFor(e,r):0;
     return `<button class="ex ${done?'done':''}" data-id="${e.id}" aria-pressed="${done}">
-      <img src="${IMG[e.img]}" alt="">
-      <span class="body"><span class="n num">${i+1}</span><span class="name">${e.name}</span><span class="spec num">${done?actualSpec(e,r):e.spec}</span>
+      <img src="${IMG[e.img]}" alt=""><span class="n num">${i+1}</span>
+      <span class="body"><span class="name">${e.name}</span><span class="spec num">${done?actualSpec(e,r):e.spec}</span>
       ${e.adj&&!done?`<span class="adj">↻ ${e.adj}</span>`:''}
       <span class="note ${e.lvl}">${LVL[e.lvl][1]}</span>${done&&kc?`<span class="kcal num">≈ ${Math.round(kc)} kcal</span>`:''}</span>
       <span class="side"><span class="tag ${e.lvl}">${LVL[e.lvl][0]}</span><span class="chk">✓</span></span></button>`;}).join('');
@@ -942,6 +977,7 @@ async function aiEvaluate(){
 
 /* ============ 달력 ============ */
 function renderCal(){
+  for(const x in rotMemo) delete rotMemo[x];
   const y=calMonth.getFullYear(), m=calMonth.getMonth();
   $('monthLabel').textContent=`${y}년 ${m+1}월`;
   const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate(), today=key(new Date());
@@ -962,13 +998,13 @@ $('nextM').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);renderCal();};
 const PF=['name','sex','age','height','weight','fat','muscle','waist','activity'];
 const pid=f=>'p'+f[0].toUpperCase()+f.slice(1);
 function loadProfile(){ PF.forEach(f=>{const el=$(pid(f)); if(el&&S.profile[f]!=null) el.value=S.profile[f];});
-  $('gType').value=S.goal.type||'loss'; $('gWeight').value=S.goal.weight??''; $('gDate').value=S.goal.date??''; $('gDays').value=S.goal.days||5; $('gAuto').value=String(S.goal.auto??1);
+  $('gType').value=S.goal.type||'loss'; $('gWeight').value=S.goal.weight??''; $('gDate').value=S.goal.date??''; $('gDays').value=S.goal.days||5; $('gAuto').value=String(S.goal.auto??1); $('gMode').value=S.goal.mode||'rotation';
   renderDerived(); renderAnalysis(); }
 function loadSettings(){ $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderUpdate(); }
 function syncApiUI(){ const p=$('apiProvider').value; $('apiModel').placeholder=APIDEF[p].model; $('apiKey').placeholder=p==='gemini'?'AIza...':'sk-ant-...'; $('apiHelp').textContent=APIDEF[p].help; }
 $('apiProvider').addEventListener('change',syncApiUI);
 function readProfile(){ PF.forEach(f=>{const el=$(pid(f)); const v=el.value; S.profile[f]=v===''?undefined:(f==='name'||f==='sex'?v:Number(v));});
-  S.goal={type:$('gType').value,weight:$('gWeight').value===''?undefined:Number($('gWeight').value),date:$('gDate').value||undefined,days:Number($('gDays').value),auto:Number($('gAuto').value)}; }
+  S.goal={type:$('gType').value,weight:$('gWeight').value===''?undefined:Number($('gWeight').value),date:$('gDate').value||undefined,days:Number($('gDays').value),auto:Number($('gAuto').value),mode:$('gMode').value}; }
 function renderDerived(){ const m=metrics();
   $('derived').innerHTML=`<div class="tile"><b class="num">${m.bmi?m.bmi.toFixed(1):'–'}</b><small>BMI${m.bmi?' · '+bmiLabel(m.bmi):''}</small></div><div class="tile"><b class="num">${m.bmr?Math.round(m.bmr):'–'}</b><small>기초대사량 kcal</small></div><div class="tile"><b class="num">${m.tdee?Math.round(m.tdee):'–'}</b><small>유지 칼로리(TDEE)</small></div><div class="tile"><b class="num">${m.lbm?m.lbm.toFixed(1):'–'}</b><small>제지방량 kg</small></div>`; }
 function renderAnalysis(){ const m=metrics(), g=S.goal, box=$('analysis');
@@ -983,7 +1019,7 @@ function renderAnalysis(){ const m=metrics(), g=S.goal, box=$('analysis');
   const fatTip=(S.profile.fat&&((S.profile.sex==='m'&&S.profile.fat>=25)||(S.profile.sex==='f'&&S.profile.fat>=32)))?'<li>체지방률이 높은 편 — 감량기에도 근력 운동을 빼지 말고 단백질을 챙겨 제지방을 지키세요</li>':'';
   box.innerHTML=`<b class="t">${gt} 목표 분석</b>
     <div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><b class="num">${m.target}</b><small>하루 목표 kcal</small></div><div class="tile"><b class="num">${m.protein}g</b><small>단백질 목표</small></div><div class="tile"><b class="num">${Math.round(m.tdee)}</b><small>유지 칼로리</small></div></div>
-    <ul>${feas}${bmiTip}${fatTip}${tips.map(t=>`<li>${t}</li>`).join('')}<li>운동 설정: ${Number(g.auto)?'<b>자동</b> — 매일 전일 훈련 부위·세트 수·통증 기록을 보고 48시간 회복이 안 된 부위는 선택으로 낮추고 세트를 줄입니다. 직전 기록에 따라 무게도 조정됩니다':'<b>고정</b> — 요일별 기본 루틴 그대로'}</li></ul>`; }
+    <ul>${feas}${bmiTip}${fatTip}${tips.map(t=>`<li>${t}</li>`).join('')}<li>루틴 순서: ${(g.mode||'rotation')==='rotation'?'<b>부위 순환</b> — 요일과 무관하게 상체→유산소→하체→유산소→전신→유산소→회복 순으로 돌며, 하루 걸렀으면 다음에 이어서 합니다. 전일 훈련 부위와 겹치는 루틴은 자동으로 건너뜁니다':'<b>요일 고정</b>'}</li><li>세부 조정: ${Number(g.auto)?'<b>자동</b> — 매일 전일 훈련 부위·세트 수·통증 기록을 보고 48시간 회복이 안 된 부위는 선택으로 낮추고 세트를 줄입니다. 직전 기록에 따라 무게도 조정됩니다':'<b>고정</b> — 요일별 기본 루틴 그대로'}</li></ul>`; }
 document.querySelectorAll('#viewProfile .fields input,#viewProfile select').forEach(i=>i.addEventListener('input',()=>{ if(i.id.startsWith('p')||i.id.startsWith('g')){readProfile();renderDerived();} }));
 $('saveProfile').onclick=()=>{ readProfile(); const m=metrics(); if(!m.target){ save(); renderAnalysis(); toast('체중·키·나이를 모두 입력해 주세요'); return; }
   // 오늘 이후의 자동 플랜 스냅샷은 새 목표로 다시 생성되도록 제거 (기록 있는 날 제외)
@@ -1002,8 +1038,39 @@ $('importBtn').onclick=()=>{ const t=prompt('내보내기 텍스트를 붙여넣
 $('resetBtn').onclick=()=>{ if(confirm('모든 기록과 프로필을 지울까요?')){ S={profile:{sex:'m',activity:1.375},goal:{type:'loss',days:5,auto:1},log:{},food:{},plan:{},weekly:[]}; save(); loadProfile(); renderWeekly(); renderToday(); toast('초기화했습니다'); } };
 
 
+
+/* ============ 지난 운동 직접 입력 (첫 실행 온보딩) ============ */
+function openManualLog(first){
+  const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet';
+  const groups=[['cardio','유산소'],['chest','가슴·어깨'],['back','등'],['legs','하체'],['core','코어']];
+  const def=shift(key(new Date()),-1);
+  const row=e=>{ let f='';
+    if(e.type==='cardio') f=`<label>분<input type="number" data-f="min" value="${e.min}" inputmode="numeric"></label>`;
+    else if(e.type==='time') f=`<label>초<input type="number" data-f="sec" value="${e.sec}" inputmode="numeric"></label><label>세트<input type="number" data-f="sets" value="${e.sets}" inputmode="numeric"></label>`;
+    else f=`<label>${e.assist?'보조 ':''}kg<input type="number" data-f="kg" step="2.5" value="${e.kg}" inputmode="decimal"></label><label>회<input type="number" data-f="reps" value="${e.reps}" inputmode="numeric"></label><label>세트<input type="number" data-f="sets" value="${e.sets}" inputmode="numeric"></label>`;
+    return `<div class="mrow" data-id="${e.id}"><label class="mchk"><input type="checkbox"> <b>${e.name}</b> <small style="color:var(--muted)">${e.spec}</small></label><div class="fields mf" hidden>${f}</div></div>`; };
+  sh.innerHTML=`<div class="box"><h3>${first?'시작하기 — 최근에 한 운동을 알려주세요':'지난 운동 직접 입력'}</h3>
+    <div class="plan">${first?'어제(또는 마지막으로 운동한 날) 한 운동을 체크하면, 그 부위를 피해서 오늘부터 이어갈 루틴을 만들어 드립니다. 없으면 「건너뛰기」.':'해당 날짜의 완료 기록으로 저장되며 다음 루틴 계산에 반영됩니다.'}</div>
+    <div class="fields" style="margin-bottom:10px"><label>운동한 날짜<input type="date" id="mDate" value="${def}" max="${key(new Date())}"></label></div>
+    ${groups.map(([g,n])=>`<div class="mgrp"><h4>${n}</h4>${EXALL.filter(e=>e.g===g).map(row).join('')}</div>`).join('')}
+    <div class="acts">${first?'<button class="btn" id="mSkip">건너뛰기</button>':'<button class="btn" id="mSkip">닫기</button>'}<button class="btn pri" id="mSave">저장하고 시작</button></div></div>`;
+  document.body.appendChild(sh);
+  sh.querySelectorAll('.mchk input').forEach(c=>c.onchange=()=>{ c.closest('.mrow').querySelector('.mf').hidden=!c.checked; });
+  const close=()=>{ sh.remove(); };
+  $('mSkip').onclick=()=>{ S.onboarded=true; save(); close(); renderToday(); };
+  $('mSave').onclick=()=>{ const k=$('mDate').value; if(!k){ toast('날짜를 선택하세요'); return; }
+    const rows=[...sh.querySelectorAll('.mrow')].filter(r=>r.querySelector('.mchk input').checked); if(!rows.length){ toast('한 운동을 하나 이상 체크하세요'); return; }
+    S.log[k]=S.log[k]||{}; const exs=[];
+    rows.forEach(r=>{ const e=EXBYID[r.dataset.id]; const rec={done:true,name:e.name,g:e.g,at:Date.now(),manual:true}; r.querySelectorAll('input[data-f]').forEach(i=>rec[i.dataset.f]=+i.value); S.log[k][e.id]=rec; exs.push(clone(e)); });
+    // 그날 루틴 스냅샷 = 직접 입력한 항목들
+    const tpl=inferTpl(k); S.plan[k]={name:ROUTINE[fromKey(k).getDay()].name,focus:'직접 입력',color:tpl!=null?ROUTINE[tpl].color:'var(--dsun)',ex:exs,notes:['직접 입력한 기록'],auto:false,manual:true,tpl};
+    const today=key(new Date()); for(const p in S.plan){ if(p>k&&p<=today&&!hasDone(p)) delete S.plan[p]; }
+    S.onboarded=true; save(); close(); cur=new Date(); cur.setHours(0,0,0,0); showView('today'); toast('기록했습니다. 오늘 루틴을 그에 맞춰 정했습니다'); };
+}
+$('manualLog').onclick=()=>openManualLog(false);
+
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.4';
+const APP_VERSION='0.5';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
@@ -1045,6 +1112,7 @@ $('nextDay').onclick=()=>{cur.setDate(cur.getDate()+1);showView(view);};
 $('dateLabel').onclick=()=>{cur=new Date();cur.setHours(0,0,0,0);showView(view);};
 let tt; function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200);}
 showView('today');
+if(!S.onboarded && !Object.keys(S.log).some(hasDone)) setTimeout(()=>openManualLog(true),400);
 </script>
 
 </body>
