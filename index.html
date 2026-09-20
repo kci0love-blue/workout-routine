@@ -346,7 +346,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
 
     <div class="card">
-      <h2>데이터 <span class="pill">앱 버전 v0.3</span></h2>
+      <h2>데이터 <span class="pill">앱 버전 v0.3a</span></h2>
       <p class="help">기록은 이 브라우저에만 저장됩니다. 백업이 필요하면 내보내기 텍스트를 복사해 두세요. (음식 사진은 용량 때문에 내보내기에서 제외됩니다)</p>
       <div class="acts"><button class="btn" id="exportBtn">내보내기(복사)</button><button class="btn" id="importBtn">가져오기</button><button class="btn danger" id="resetBtn">초기화</button></div>
     </div>
@@ -578,7 +578,7 @@ try{
   let raw=localStorage.getItem(KEY) || localStorage.getItem(OLDKEY);
   if(raw){ const o=JSON.parse(raw); S=Object.assign(S,o); S.profile=Object.assign({sex:'m',activity:1.375},o.profile||{}); S.goal=Object.assign({type:'loss',days:5,auto:1},o.goal||{}); S.food=o.food||{}; S.plan=o.plan||{}; }
 }catch(e){}
-const APIDEF={gemini:{model:'gemini-2.5-flash',help:'키 받기: aistudio.google.com → Get API key → Create API key (구글 로그인만 필요). 한도 초과 시 잠시 후 다시 시도하거나 모델을 gemini-2.5-flash-lite로 바꿔보세요.'},claude:{model:'claude-sonnet-4-5',help:'키 받기: platform.claude.com → API keys. 사진 1장 분석 약 5~10원, 선불 크레딧 충전 방식이라 충전액 이상은 청구되지 않습니다.'}};
+const APIDEF={gemini:{model:'gemini-3.5-flash-lite',help:'키 받기: aistudio.google.com → Get API key → Create API key (구글 로그인만 필요). 모델 칸을 비워두면 계정에서 쓸 수 있는 Flash 모델을 자동으로 찾아 씁니다. 한도 초과 시 잠시 후 다시 시도하세요.'},claude:{model:'claude-sonnet-4-5',help:'키 받기: platform.claude.com → API keys. 사진 1장 분석 약 5~10원, 선불 크레딧 충전 방식이라 충전액 이상은 청구되지 않습니다.'}};
 let API={provider:'gemini',key:'',model:''}; try{ const a=localStorage.getItem(KEYAPI); if(a){ API=Object.assign(API,JSON.parse(a)); if(!API.provider) API.provider=(API.key||'').startsWith('sk-ant')?'claude':'gemini'; } }catch(e){}
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){ toast('저장 공간이 부족합니다. 사진이 많으면 오래된 사진을 지워주세요.'); } }
 function saveApi(){ try{ localStorage.setItem(KEYAPI,JSON.stringify(API)); }catch(e){} }
@@ -869,15 +869,27 @@ $('addFood').onclick=()=>{
 function guessCat(n){ n=n.toLowerCase(); if(/치킨|피자|햄버거|버거|돈까스|감자튀김|탕수육|튀김/.test(n)) return 'fast'; if(/맥주|소주|와인|막걸리|하이볼|술/.test(n)) return 'alcohol'; if(/과자|초코|케이크|아이스크림|도넛|빵|쿠키|사탕|젤리/.test(n)) return 'snack'; if(/콜라|주스|라떼|음료|사이다/.test(n)) return 'drink'; return 'etc'; }
 
 /* ============ Claude API (선택) ============ */
+/* 계정에서 실제로 쓸 수 있는 Gemini 모델 목록에서 Flash-Lite → Flash 순으로 고름 (preview·tts·image·embedding 제외) */
+async function geminiPickModel(){
+  try{ const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(API.key)}&pageSize=200`); if(!r.ok) return null;
+    const j=await r.json(); const names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''))
+      .filter(n=>/flash/.test(n)&&!/preview|exp|tts|image|embedding|live|audio|thinking/.test(n));
+    const ver=n=>{const x=n.match(/(\d+(?:\.\d+)?)/);return x?parseFloat(x[1]):0;};
+    const lite=names.filter(n=>/lite/.test(n)).sort((a,b)=>ver(b)-ver(a)), flash=names.filter(n=>!/lite/.test(n)).sort((a,b)=>ver(b)-ver(a));
+    return lite[0]||flash[0]||null; }catch(e){ return null; }
+}
 /* content: [{type:'image',data:base64jpeg}|{type:'text',text}] — 제공자에 맞춰 변환 */
 async function callAI(content, max_tokens=700){
   if(!API.key){ toast('프로필 탭에서 AI API 키를 먼저 저장하세요'); showView('profile'); throw new Error('API 키 없음'); }
   const model=API.model||APIDEF[API.provider].model;
   if(API.provider==='gemini'){
     const parts=content.map(c=>c.type==='image'?{inline_data:{mime_type:'image/jpeg',data:c.data}}:{text:c.text});
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API.key)}`,{method:'POST',headers:{'content-type':'application/json'},
+    const call=async m=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(API.key)}`,{method:'POST',headers:{'content-type':'application/json'},
       body:JSON.stringify({contents:[{parts}],generationConfig:{maxOutputTokens:max_tokens,temperature:0.3}})});
-    if(!res.ok){ const t=await res.text(); throw new Error(res.status===429?'Gemini 무료 한도 초과 — 1분 뒤 다시 시도하거나 모델을 gemini-2.5-flash-lite로 바꿔보세요':`Gemini ${res.status}: ${t.slice(0,160)}`); }
+    let res=await call(model);
+    if(res.status===404){ // 모델이 없거나 새 계정에 제공되지 않음 → 사용 가능한 Flash 모델 자동 탐색
+      const found=await geminiPickModel(); if(found&&found!==model){ API.model=found; saveApi(); if($('apiModel')) $('apiModel').value=found; toast(`모델을 ${found}(으)로 자동 변경했습니다`); res=await call(found); } }
+    if(!res.ok){ const t=await res.text(); throw new Error(res.status===429?'Gemini 무료 한도 초과 — 1분 뒤 다시 시도하거나 다른 Flash-Lite 모델로 바꿔보세요':`Gemini ${res.status}: ${t.slice(0,160)}`); }
     const j=await res.json(); const cand=j.candidates&&j.candidates[0]; if(!cand||!cand.content) throw new Error('응답이 비어 있습니다'+(j.promptFeedback?' ('+JSON.stringify(j.promptFeedback).slice(0,80)+')':''));
     return cand.content.parts.map(p=>p.text||'').join('');
   }
