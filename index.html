@@ -201,9 +201,10 @@ h2{margin:0 0 10px;font-size:17px}
 
 /* nav */
 .nav{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:4px;z-index:10}
-.nav button{flex:1;max-width:160px;padding:8px 2px;border-radius:12px;font-size:12px;font-weight:700;color:var(--muted);display:grid;gap:2px;justify-items:center}
+.nav button{flex:1;max-width:140px;padding:8px 2px;border-radius:12px;font-size:11.5px;position:relative;font-weight:700;color:var(--muted);display:grid;gap:2px;justify-items:center}
 .nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .nav button.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+.nav button .badge{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--bad)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:700;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 @media (max-width:460px){
@@ -243,7 +244,7 @@ h2{margin:0 0 10px;font-size:17px}
     <div class="card" id="evalCard"></div>
     <div class="card">
       <h2>음식 기록</h2>
-      <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. 프로필 탭에 AI 키(Gemini 무료 가능)를 저장하면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
+      <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. 설정 탭에 AI 키(Gemini 무료 가능)를 저장하면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
       <div class="fields">
         <label class="wide search">음식 검색 / 이름<input id="fName" placeholder="예) 제육덮밥, 아메리카노" autocomplete="off"><div class="sugg" id="sugg" hidden></div></label>
         <label>끼니<select id="fMeal"><option>아침</option><option selected>점심</option><option>저녁</option><option>간식</option></select></label>
@@ -324,6 +325,24 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
 
     <div class="card">
+      <h2>칼로리·점수 계산 기준</h2>
+      <p class="help" style="margin:0">
+        <b>소모 칼로리</b> — 유산소: MET × 체중 × 시간. 근력: 세트당 운동+휴식 시간에 부하별 MET 3.5~6.<br>
+        <b>목표 칼로리</b> — 기초대사량(Mifflin-St Jeor) × 활동계수 = 유지 칼로리(TDEE). 감량 −500, 증량 +300, 유지 ±0. 운동으로 소모한 만큼은 당일 허용량에 절반만 더합니다.<br>
+        <b>단백질 목표</b> — 감량 1.8g/kg · 증량 1.8g/kg · 유지 1.4g/kg.<br>
+        <b>하루 점수(100)</b> — 운동 40 (필수 30 + 선택·마무리 10) · 칼로리 30 (목표 대비 ±10% 만점) · 단백질 15 · 식단 균형 15 (탄수 40~60%, 지방 20~35%, 정크푸드·술 감점). 80점 이상이면 목표 달성일.
+      </p>
+    </div>
+  </section>
+  <!-- ===== 설정 ===== -->
+  <section id="viewSettings" hidden>
+    <div class="card">
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.4</span></h2>
+      <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
+      <div id="updBox" class="analysis" style="margin-top:0"></div>
+      <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
+    </div>
+    <div class="card">
       <h2>AI 분석 (선택)</h2>
       <p class="help">API 키를 넣으면 음식 사진·설명 분석과 하루 총평을 AI가 작성합니다. <b>Gemini</b>는 Google AI Studio에서 카드 등록 없이 무료 키를 받을 수 있고(무료 등급은 분당·일일 횟수 제한 있음), <b>Claude</b>는 사용량만큼 요금이 발생합니다. 키는 이 브라우저에만 저장되고 해당 API 호출 외에는 전송되지 않습니다.</p>
       <div class="fields">
@@ -336,19 +355,13 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
 
     <div class="card">
-      <h2>칼로리·점수 계산 기준</h2>
-      <p class="help" style="margin:0">
-        <b>소모 칼로리</b> — 유산소: MET × 체중 × 시간. 근력: 세트당 운동+휴식 시간에 부하별 MET 3.5~6.<br>
-        <b>목표 칼로리</b> — 기초대사량(Mifflin-St Jeor) × 활동계수 = 유지 칼로리(TDEE). 감량 −500, 증량 +300, 유지 ±0. 운동으로 소모한 만큼은 당일 허용량에 절반만 더합니다.<br>
-        <b>단백질 목표</b> — 감량 1.8g/kg · 증량 1.8g/kg · 유지 1.4g/kg.<br>
-        <b>하루 점수(100)</b> — 운동 40 (필수 30 + 선택·마무리 10) · 칼로리 30 (목표 대비 ±10% 만점) · 단백질 15 · 식단 균형 15 (탄수 40~60%, 지방 20~35%, 정크푸드·술 감점). 80점 이상이면 목표 달성일.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>데이터 <span class="pill">앱 버전 v0.3a</span></h2>
+      <h2>데이터</h2>
       <p class="help">기록은 이 브라우저에만 저장됩니다. 백업이 필요하면 내보내기 텍스트를 복사해 두세요. (음식 사진은 용량 때문에 내보내기에서 제외됩니다)</p>
       <div class="acts"><button class="btn" id="exportBtn">내보내기(복사)</button><button class="btn" id="importBtn">가져오기</button><button class="btn danger" id="resetBtn">초기화</button></div>
+    </div>
+    <div class="card">
+      <h2>정보</h2>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.4 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -358,6 +371,7 @@ h2{margin:0 0 10px;font-size:17px}
   <button id="navFood"><svg viewBox="0 0 24 24"><path d="M4 3v8a3 3 0 0 0 3 3v7M10 3v8a3 3 0 0 1-3 3M17 3c-2 2-2 6-2 8h4v10"/></svg>식단·평가</button>
   <button id="navCal"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>달력</button>
   <button id="navProfile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>프로필</button>
+  <button id="navSettings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>설정</button>
 </nav>
 <div class="toast" id="toast"></div>
 
@@ -880,7 +894,7 @@ async function geminiPickModel(){
 }
 /* content: [{type:'image',data:base64jpeg}|{type:'text',text}] — 제공자에 맞춰 변환 */
 async function callAI(content, max_tokens=700){
-  if(!API.key){ toast('프로필 탭에서 AI API 키를 먼저 저장하세요'); showView('profile'); throw new Error('API 키 없음'); }
+  if(!API.key){ toast('설정 탭에서 AI API 키를 먼저 저장하세요'); showView('settings'); throw new Error('API 키 없음'); }
   const model=API.model||APIDEF[API.provider].model;
   if(API.provider==='gemini'){
     const parts=content.map(c=>c.type==='image'?{inline_data:{mime_type:'image/jpeg',data:c.data}}:{text:c.text});
@@ -949,7 +963,8 @@ const PF=['name','sex','age','height','weight','fat','muscle','waist','activity'
 const pid=f=>'p'+f[0].toUpperCase()+f.slice(1);
 function loadProfile(){ PF.forEach(f=>{const el=$(pid(f)); if(el&&S.profile[f]!=null) el.value=S.profile[f];});
   $('gType').value=S.goal.type||'loss'; $('gWeight').value=S.goal.weight??''; $('gDate').value=S.goal.date??''; $('gDays').value=S.goal.days||5; $('gAuto').value=String(S.goal.auto??1);
-  $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderDerived(); renderAnalysis(); }
+  renderDerived(); renderAnalysis(); }
+function loadSettings(){ $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderUpdate(); }
 function syncApiUI(){ const p=$('apiProvider').value; $('apiModel').placeholder=APIDEF[p].model; $('apiKey').placeholder=p==='gemini'?'AIza...':'sk-ant-...'; $('apiHelp').textContent=APIDEF[p].help; }
 $('apiProvider').addEventListener('change',syncApiUI);
 function readProfile(){ PF.forEach(f=>{const el=$(pid(f)); const v=el.value; S.profile[f]=v===''?undefined:(f==='name'||f==='sex'?v:Number(v));});
@@ -986,16 +1001,45 @@ $('exportBtn').onclick=async()=>{ const c=clone(S); for(const k in c.food){ c.fo
 $('importBtn').onclick=()=>{ const t=prompt('내보내기 텍스트를 붙여넣으세요'); if(!t)return; try{ const o=JSON.parse(t); S=Object.assign({profile:{},goal:{},log:{},food:{},plan:{},weekly:[]},o); save(); loadProfile(); renderWeekly(); renderToday(); toast('가져왔습니다'); }catch(e){ toast('형식이 올바르지 않습니다'); } };
 $('resetBtn').onclick=()=>{ if(confirm('모든 기록과 프로필을 지울까요?')){ S={profile:{sex:'m',activity:1.375},goal:{type:'loss',days:5,auto:1},log:{},food:{},plan:{},weekly:[]}; save(); loadProfile(); renderWeekly(); renderToday(); toast('초기화했습니다'); } };
 
+
+/* ============ 업데이트 확인 ============ */
+const APP_VERSION='0.4';
+let UPD={latest:null,notes:'',state:'idle'};
+const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
+function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
+async function checkUpdate(silent){
+  if(location.protocol==='file:'||/claude\.ai|claudeusercontent/.test(location.hostname)){ UPD.state='na'; renderUpdate(); return; }
+  UPD.state='checking'; renderUpdate();
+  try{ const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error(r.status);
+    const j=await r.json(); UPD.latest=j.version; UPD.notes=j.notes||''; UPD.state=isNewer(j.version,APP_VERSION)?'new':'latest';
+    try{ localStorage.setItem('gym-upd-check',JSON.stringify({at:Date.now(),latest:j.version})); }catch(e){}
+  }catch(e){ UPD.state='err'; UPD.err=String(e.message||e); }
+  renderUpdate(); renderUpdBadge(); if(!silent&&UPD.state==='new') toast(`새 버전 v${UPD.latest}이 있습니다`);
+}
+function renderUpdBadge(){ const n=$('navSettings'); let b=n.querySelector('.badge'); if(UPD.state==='new'){ if(!b){ b=document.createElement('span'); b.className='badge'; n.appendChild(b);} } else if(b) b.remove(); }
+function renderUpdate(){ const box=$('updBox'); if(!box) return; $('doUpd').hidden=UPD.state!=='new';
+  const m={idle:'아직 확인하지 않았습니다. 「업데이트 확인」을 눌러주세요.',checking:'확인 중…',latest:`최신 버전입니다 (v${APP_VERSION}).`,
+    new:`<b class="t">새 버전 v${UPD.latest} 사용 가능</b>${UPD.notes?UPD.notes.replace(/\n/g,'<br>'):''}<br><small style="color:var(--muted)">현재 v${APP_VERSION} → 「업데이트하기」를 누르면 새 파일을 받아 다시 엽니다.</small>`,
+    na:'로컬 파일이나 미리보기에서는 확인할 수 없습니다. GitHub Pages 주소로 열었을 때 동작합니다.',
+    err:`확인 실패 (${UPD.err||''}). 저장소에 version.json이 있는지, 인터넷 연결을 확인하세요.`};
+  box.innerHTML=m[UPD.state]||''; }
+async function doUpdate(){ $('doUpd').disabled=true; $('doUpd').textContent='받는 중…';
+  try{ await fetch('index.html?t='+Date.now(),{cache:'reload'}); await fetch(location.pathname,{cache:'reload'}).catch(()=>{}); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
+  location.reload(); }
+$('checkUpd').onclick=()=>checkUpdate(false); $('doUpd').onclick=doUpdate;
+/* 앱 열 때 하루 1회 조용히 확인 */
+(function(){ if(location.protocol==='file:'||/claude\.ai|claudeusercontent/.test(location.hostname)){ UPD.state='na'; return; } try{ const c=JSON.parse(localStorage.getItem('gym-upd-check')||'{}'); if(c.latest&&isNewer(c.latest,APP_VERSION)){ UPD.latest=c.latest; UPD.state='new'; renderUpdBadge(); } if(!c.at||Date.now()-c.at>6*3600e3) setTimeout(()=>checkUpdate(true),1500); }catch(e){} })();
+
 /* ============ 내비게이션 ============ */
 function showView(v){
-  ['today','food','cal','profile'].forEach(x=>{ const cap=x[0].toUpperCase()+x.slice(1); $('view'+cap).hidden=(x!==v); $('nav'+cap).classList.toggle('on',x===v); });
-  $('dateNav').style.visibility=(v==='today'||v==='food')?'visible':'hidden';
+  ['today','food','cal','profile','settings'].forEach(x=>{ const cap=x[0].toUpperCase()+x.slice(1); $('view'+cap).hidden=(x!==v); $('nav'+cap).classList.toggle('on',x===v); });
+  $('dateNav').style.visibility=(v==='today'||v==='food')?'visible':'hidden'; if(v==='settings') setAccent('var(--dsun)');
   if(v==='today') renderToday(); if(v==='food'){ setAccent('var(--food)'); $('dateLabel').textContent=`${cur.getFullYear()}.${pad(cur.getMonth()+1)}.${pad(cur.getDate())} (${DAYS[cur.getDay()]})`; renderFood(); }
-  if(v==='cal'){ calMonth=new Date(cur.getFullYear(),cur.getMonth(),1); renderCal(); } if(v==='profile'){ loadProfile(); renderWeekly(); }
+  if(v==='cal'){ calMonth=new Date(cur.getFullYear(),cur.getMonth(),1); renderCal(); } if(v==='profile'){ loadProfile(); renderWeekly(); } if(v==='settings'){ loadSettings(); }
   window.scrollTo({top:0});
 }
 let view='today';
-$('navToday').onclick=()=>{view='today';showView('today');}; $('navFood').onclick=()=>{view='food';showView('food');}; $('navCal').onclick=()=>{view='cal';showView('cal');}; $('navProfile').onclick=()=>{view='profile';showView('profile');};
+$('navToday').onclick=()=>{view='today';showView('today');}; $('navFood').onclick=()=>{view='food';showView('food');}; $('navCal').onclick=()=>{view='cal';showView('cal');}; $('navProfile').onclick=()=>{view='profile';showView('profile');}; $('navSettings').onclick=()=>{view='settings';showView('settings');};
 $('prevDay').onclick=()=>{cur.setDate(cur.getDate()-1);showView(view);};
 $('nextDay').onclick=()=>{cur.setDate(cur.getDate()+1);showView(view);};
 $('dateLabel').onclick=()=>{cur=new Date();cur.setHours(0,0,0,0);showView(view);};
