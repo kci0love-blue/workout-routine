@@ -243,7 +243,7 @@ h2{margin:0 0 10px;font-size:17px}
     <div class="card" id="evalCard"></div>
     <div class="card">
       <h2>음식 기록</h2>
-      <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. Claude API 키가 있으면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
+      <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. 프로필 탭에 AI 키(Gemini 무료 가능)를 저장하면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
       <div class="fields">
         <label class="wide search">음식 검색 / 이름<input id="fName" placeholder="예) 제육덮밥, 아메리카노" autocomplete="off"><div class="sugg" id="sugg" hidden></div></label>
         <label>끼니<select id="fMeal"><option>아침</option><option selected>점심</option><option>저녁</option><option>간식</option></select></label>
@@ -325,12 +325,14 @@ h2{margin:0 0 10px;font-size:17px}
 
     <div class="card">
       <h2>AI 분석 (선택)</h2>
-      <p class="help">Claude API 키를 넣으면 음식 사진·설명 분석과 하루 총평 코멘트를 AI가 작성합니다. 키는 이 브라우저에만 저장되고 API 호출 외에는 전송되지 않습니다. 사용량만큼 API 요금이 발생합니다.</p>
+      <p class="help">API 키를 넣으면 음식 사진·설명 분석과 하루 총평을 AI가 작성합니다. <b>Gemini</b>는 Google AI Studio에서 카드 등록 없이 무료 키를 받을 수 있고(무료 등급은 분당·일일 횟수 제한 있음), <b>Claude</b>는 사용량만큼 요금이 발생합니다. 키는 이 브라우저에만 저장되고 해당 API 호출 외에는 전송되지 않습니다.</p>
       <div class="fields">
-        <label class="wide">Claude API 키<input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
-        <label class="wide">모델<input id="apiModel" placeholder="claude-sonnet-4-5"></label>
+        <label>AI 제공자<select id="apiProvider"><option value="gemini">Google Gemini (무료 등급)</option><option value="claude">Anthropic Claude (유료)</option></select></label>
+        <label>모델<input id="apiModel" placeholder="gemini-2.5-flash"></label>
+        <label class="wide">API 키<input id="apiKey" type="password" placeholder="AIza... 또는 sk-ant-..." autocomplete="off"></label>
       </div>
-      <div class="acts"><button class="btn" id="saveKey">키 저장</button><button class="btn danger" id="clearKey">키 삭제</button></div>
+      <p class="help" id="apiHelp" style="margin-top:8px"></p>
+      <div class="acts"><button class="btn" id="saveKey">키 저장</button><button class="btn" id="testKey">연결 테스트</button><button class="btn danger" id="clearKey">키 삭제</button></div>
     </div>
 
     <div class="card">
@@ -344,7 +346,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
 
     <div class="card">
-      <h2>데이터</h2>
+      <h2>데이터 <span class="pill">앱 버전 v0.3</span></h2>
       <p class="help">기록은 이 브라우저에만 저장됩니다. 백업이 필요하면 내보내기 텍스트를 복사해 두세요. (음식 사진은 용량 때문에 내보내기에서 제외됩니다)</p>
       <div class="acts"><button class="btn" id="exportBtn">내보내기(복사)</button><button class="btn" id="importBtn">가져오기</button><button class="btn danger" id="resetBtn">초기화</button></div>
     </div>
@@ -576,7 +578,8 @@ try{
   let raw=localStorage.getItem(KEY) || localStorage.getItem(OLDKEY);
   if(raw){ const o=JSON.parse(raw); S=Object.assign(S,o); S.profile=Object.assign({sex:'m',activity:1.375},o.profile||{}); S.goal=Object.assign({type:'loss',days:5,auto:1},o.goal||{}); S.food=o.food||{}; S.plan=o.plan||{}; }
 }catch(e){}
-let API={key:'',model:'claude-sonnet-4-5'}; try{ const a=localStorage.getItem(KEYAPI); if(a) API=Object.assign(API,JSON.parse(a)); }catch(e){}
+const APIDEF={gemini:{model:'gemini-2.5-flash',help:'키 받기: aistudio.google.com → Get API key → Create API key (구글 로그인만 필요). 한도 초과 시 잠시 후 다시 시도하거나 모델을 gemini-2.5-flash-lite로 바꿔보세요.'},claude:{model:'claude-sonnet-4-5',help:'키 받기: platform.claude.com → API keys. 사진 1장 분석 약 5~10원, 선불 크레딧 충전 방식이라 충전액 이상은 청구되지 않습니다.'}};
+let API={provider:'gemini',key:'',model:''}; try{ const a=localStorage.getItem(KEYAPI); if(a){ API=Object.assign(API,JSON.parse(a)); if(!API.provider) API.provider=(API.key||'').startsWith('sk-ant')?'claude':'gemini'; } }catch(e){}
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){ toast('저장 공간이 부족합니다. 사진이 많으면 오래된 사진을 지워주세요.'); } }
 function saveApi(){ try{ localStorage.setItem(KEYAPI,JSON.stringify(API)); }catch(e){} }
 
@@ -866,20 +869,31 @@ $('addFood').onclick=()=>{
 function guessCat(n){ n=n.toLowerCase(); if(/치킨|피자|햄버거|버거|돈까스|감자튀김|탕수육|튀김/.test(n)) return 'fast'; if(/맥주|소주|와인|막걸리|하이볼|술/.test(n)) return 'alcohol'; if(/과자|초코|케이크|아이스크림|도넛|빵|쿠키|사탕|젤리/.test(n)) return 'snack'; if(/콜라|주스|라떼|음료|사이다/.test(n)) return 'drink'; return 'etc'; }
 
 /* ============ Claude API (선택) ============ */
-async function callClaude(content, max_tokens=700){
-  if(!API.key){ toast('프로필 탭에서 Claude API 키를 먼저 저장하세요'); showView('profile'); return null; }
+/* content: [{type:'image',data:base64jpeg}|{type:'text',text}] — 제공자에 맞춰 변환 */
+async function callAI(content, max_tokens=700){
+  if(!API.key){ toast('프로필 탭에서 AI API 키를 먼저 저장하세요'); showView('profile'); throw new Error('API 키 없음'); }
+  const model=API.model||APIDEF[API.provider].model;
+  if(API.provider==='gemini'){
+    const parts=content.map(c=>c.type==='image'?{inline_data:{mime_type:'image/jpeg',data:c.data}}:{text:c.text});
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API.key)}`,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({contents:[{parts}],generationConfig:{maxOutputTokens:max_tokens,temperature:0.3}})});
+    if(!res.ok){ const t=await res.text(); throw new Error(res.status===429?'Gemini 무료 한도 초과 — 1분 뒤 다시 시도하거나 모델을 gemini-2.5-flash-lite로 바꿔보세요':`Gemini ${res.status}: ${t.slice(0,160)}`); }
+    const j=await res.json(); const cand=j.candidates&&j.candidates[0]; if(!cand||!cand.content) throw new Error('응답이 비어 있습니다'+(j.promptFeedback?' ('+JSON.stringify(j.promptFeedback).slice(0,80)+')':''));
+    return cand.content.parts.map(p=>p.text||'').join('');
+  }
+  const msg=content.map(c=>c.type==='image'?{type:'image',source:{type:'base64',media_type:'image/jpeg',data:c.data}}:{type:'text',text:c.text});
   const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':API.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:API.model||'claude-sonnet-4-5',max_tokens,messages:[{role:'user',content}]})});
-  if(!res.ok){ const t=await res.text(); throw new Error(`API ${res.status}: ${t.slice(0,160)}`); }
+    body:JSON.stringify({model,max_tokens,messages:[{role:'user',content:msg}]})});
+  if(!res.ok){ const t=await res.text(); throw new Error(`Claude ${res.status}: ${t.slice(0,160)}`); }
   const j=await res.json(); return j.content.map(c=>c.text||'').join('');
 }
 async function aiFood(){
   const desc=$('fDesc').value.trim(); if(!fPhotoData&&!desc){ toast('사진을 첨부하거나 설명을 적어주세요'); return; }
   $('aiOut').textContent='분석 중…'; $('aiFood').disabled=true;
   try{
-    const content=[]; if(fPhotoData) content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:fPhotoData.split(',')[1]}});
+    const content=[]; if(fPhotoData) content.push({type:'image',data:fPhotoData.split(',')[1]});
     content.push({type:'text',text:`다음 음식(사진${desc?' 및 설명: "'+desc+'"':''})을 한국 성인 1인분 기준으로 분석해 JSON만 출력해줘. 형식: {"name":"음식 이름(짧게)","kcal":숫자,"protein_g":숫자,"carb_g":숫자,"fat_g":숫자,"category":"rice|soup|meat|fish|noodle|bread|side|veg|dairy|snack|drink|fast|alcohol","comment":"한 줄 평가(한국어, 40자 이내)"} 여러 음식이면 합산해서 하나로.`});
-    const txt=await callClaude(content,400); const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1));
+    const txt=await callAI(content,400); const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1));
     $('fName').value=js.name||desc; $('fKcal').value=Math.round(js.kcal); $('fP').value=js.protein_g; $('fC').value=js.carb_g; $('fF').value=js.fat_g; fSel=[js.name,js.kcal,js.protein_g,js.carb_g,js.fat_g,'1인분',js.category||'etc']; $('fQty').value=1;
     $('aiOut').textContent=`AI: ${js.name} 약 ${Math.round(js.kcal)} kcal — ${js.comment||''}`;
   }catch(e){ $('aiOut').textContent='분석 실패: '+e.message+(location.hostname.includes('claude.ai')?' (이 미리보기 환경에서는 외부 API 호출이 차단됩니다. GitHub Pages나 로컬 파일에서 사용하세요)':''); }
@@ -891,7 +905,7 @@ async function aiEvaluate(){
   try{
     const items=(S.food[k]||[]).map(i=>`${i.meal} ${i.name}${i.qty!==1?'×'+i.qty:''} ${Math.round(i.kcal)}kcal`).join(', ')||'기록 없음';
     const ex=st.done.map(e=>`${e.name}(${actualSpec(e,S.log[k][e.id])})`).join(', ')||'기록 없음';
-    const txt=await callClaude([{type:'text',text:`당신은 퍼스널 트레이너 겸 영양 코치입니다. 아래 하루 데이터를 보고 한국어로 5문장 이내의 총평을 써주세요. 잘한 점 1개, 개선점 2개, 내일 한 가지 실천 제안. 과장 없이 구체적으로.
+    const txt=await callAI([{type:'text',text:`당신은 퍼스널 트레이너 겸 영양 코치입니다. 아래 하루 데이터를 보고 한국어로 5문장 이내의 총평을 써주세요. 잘한 점 1개, 개선점 2개, 내일 한 가지 실천 제안. 과장 없이 구체적으로.
 프로필: ${m.w}kg, 키 ${m.h}cm, ${m.age}세, 목표 ${({loss:'체지방 감량',maintain:'유지',gain:'근육 증가'})[S.goal.type]}, 목표 칼로리 ${m.target}kcal, 단백질 목표 ${m.protein}g
 운동: ${ex} (소모 약 ${Math.round(st.kcal)}kcal, 필수 ${st.mustDone.length}/${st.must.length})
 식단: ${items} (합계 ${Math.round(fd.kcal)}kcal, 단백질 ${Math.round(fd.p)}g, 탄수 ${Math.round(fd.c)}g, 지방 ${Math.round(fd.f)}g)
@@ -923,7 +937,9 @@ const PF=['name','sex','age','height','weight','fat','muscle','waist','activity'
 const pid=f=>'p'+f[0].toUpperCase()+f.slice(1);
 function loadProfile(){ PF.forEach(f=>{const el=$(pid(f)); if(el&&S.profile[f]!=null) el.value=S.profile[f];});
   $('gType').value=S.goal.type||'loss'; $('gWeight').value=S.goal.weight??''; $('gDate').value=S.goal.date??''; $('gDays').value=S.goal.days||5; $('gAuto').value=String(S.goal.auto??1);
-  $('apiKey').value=API.key||''; $('apiModel').value=API.model||'claude-sonnet-4-5'; renderDerived(); renderAnalysis(); }
+  $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderDerived(); renderAnalysis(); }
+function syncApiUI(){ const p=$('apiProvider').value; $('apiModel').placeholder=APIDEF[p].model; $('apiKey').placeholder=p==='gemini'?'AIza...':'sk-ant-...'; $('apiHelp').textContent=APIDEF[p].help; }
+$('apiProvider').addEventListener('change',syncApiUI);
 function readProfile(){ PF.forEach(f=>{const el=$(pid(f)); const v=el.value; S.profile[f]=v===''?undefined:(f==='name'||f==='sex'?v:Number(v));});
   S.goal={type:$('gType').value,weight:$('gWeight').value===''?undefined:Number($('gWeight').value),date:$('gDate').value||undefined,days:Number($('gDays').value),auto:Number($('gAuto').value)}; }
 function renderDerived(){ const m=metrics();
@@ -951,7 +967,8 @@ $('saveWeekly').onclick=()=>{ const d=$('wDate').value||key(new Date()); const r
   for(let i=1;i<=3;i++){ const k=shift(d,i); if(!(S.log[k]&&Object.keys(S.log[k]).length)) delete S.plan[k]; }
   save(); renderDerived(); renderWeekly(); toast(rec.pain>=5?'통증이 높아 다음 3일은 회복 루틴으로 설정됩니다':'주간 기록을 추가했습니다'); };
 function renderWeekly(){ const l=S.weekly.slice(-8).reverse(); $('weeklyList').innerHTML=l.length?l.map(r=>`<div class="num" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>${r.date}</span><span>${r.weight?r.weight+'kg':'–'} · 허리 ${r.waist?r.waist+'cm':'–'} · 통증 ${r.pain??'–'}${r.part?'('+GNAME[r.part]+')':''}</span></div>`).join(''):'아직 기록이 없습니다.'; }
-$('saveKey').onclick=()=>{ API.key=$('apiKey').value.trim(); API.model=$('apiModel').value.trim()||'claude-sonnet-4-5'; saveApi(); toast(API.key?'API 키를 저장했습니다':'키가 비어 있습니다'); };
+$('saveKey').onclick=()=>{ API.provider=$('apiProvider').value; API.key=$('apiKey').value.trim(); API.model=$('apiModel').value.trim(); saveApi(); toast(API.key?`${API.provider==='gemini'?'Gemini':'Claude'} 키를 저장했습니다`:'키가 비어 있습니다'); };
+$('testKey').onclick=async()=>{ $('saveKey').click(); if(!API.key) return; $('testKey').disabled=true; $('testKey').textContent='확인 중…'; try{ const r=await callAI([{type:'text',text:'OK 라고 한 단어만 답해줘'}],20); toast(/ok/i.test(r)?'연결 성공: 정상 응답을 받았습니다':'응답: '+r.slice(0,40)); }catch(e){ toast('실패: '+e.message); } $('testKey').disabled=false; $('testKey').textContent='연결 테스트'; };
 $('clearKey').onclick=()=>{ API.key=''; saveApi(); $('apiKey').value=''; toast('키를 삭제했습니다'); };
 $('exportBtn').onclick=async()=>{ const c=clone(S); for(const k in c.food){ c.food[k]=c.food[k].map(i=>Object.assign({},i,{photo:undefined})); } const t=JSON.stringify(c); try{await navigator.clipboard.writeText(t);toast('클립보드에 복사했습니다');}catch(e){prompt('아래 텍스트를 복사하세요',t);} };
 $('importBtn').onclick=()=>{ const t=prompt('내보내기 텍스트를 붙여넣으세요'); if(!t)return; try{ const o=JSON.parse(t); S=Object.assign({profile:{},goal:{},log:{},food:{},plan:{},weekly:[]},o); save(); loadProfile(); renderWeekly(); renderToday(); toast('가져왔습니다'); }catch(e){ toast('형식이 올바르지 않습니다'); } };
