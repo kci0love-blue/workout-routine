@@ -187,6 +187,8 @@ h2{margin:0 0 10px;font-size:17px}
 .timer .tbtns button{padding:7px 10px;border-radius:9px;background:var(--panel);border:1px solid var(--line);font-size:12.5px;font-weight:700}
 .timer .tbtns button.on{border-color:var(--accent);color:var(--accent)}
 .timer small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.src{font-size:11.5px;color:var(--muted);min-height:16px;display:block}
+.src.ai{color:var(--opt)} .src.db{color:var(--ok)} .src.miss{color:var(--warn)}
 /* favorites */
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .chips button{padding:5px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -283,10 +285,10 @@ h2{margin:0 0 10px;font-size:17px}
     <div class="card" id="evalCard"></div>
     <div class="card">
       <h2>음식 기록</h2>
-      <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. 설정 탭에 AI 키(Gemini 무료 가능)를 저장하면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
+      <p class="help">이름을 입력하면 내장 DB·내 음식·즐겨찾기에서 찾아 영양소를 자동으로 채우고, 없으면 AI 키가 있을 때 AI가 분석해 채웁니다(설정 탭에서 Gemini 무료 키 등록). 한 번 기록한 음식은 「내 음식」으로 학습되어 다음부터 즉시 채워집니다.</p>
       <div class="fields">
         <div class="chips wide" id="favChips" style="grid-column:1/-1"></div>
-        <label class="wide search">음식 검색 / 이름<input id="fName" placeholder="예) 제육덮밥, 아메리카노" autocomplete="off"><div class="sugg" id="sugg" hidden></div></label>
+        <label class="wide search">음식 검색 / 이름<input id="fName" placeholder="예) 제육덮밥, 아메리카노 — 입력하면 영양소가 자동으로 채워집니다" autocomplete="off" enterkeyhint="done"><div class="sugg" id="sugg" hidden></div><span class="src" id="fSrc"></span></label>
         <label>끼니<select id="fMeal"><option>아침</option><option selected>점심</option><option>저녁</option><option>간식</option></select></label>
         <label>수량(배)<input id="fQty" type="number" step="0.5" min="0.25" value="1" inputmode="decimal"></label>
         <label>kcal<input id="fKcal" type="number" inputmode="numeric" placeholder="자동"></label>
@@ -384,7 +386,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.7</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.8</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -409,7 +411,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.7 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.8 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -957,10 +959,37 @@ function renderFood(){
   renderFavChips();
 }
 /* 검색 자동완성 */
-$('fName').addEventListener('input',()=>{ fSel=null; const q=$('fName').value.trim().toLowerCase(); const box=$('sugg'); if(!q){box.hidden=true;return;}
-  const hits=FOODS.filter(f=>f[0].toLowerCase().includes(q)).slice(0,12);
-  box.innerHTML=hits.map((f,i)=>`<button type="button" data-i="${FOODS.indexOf(f)}"><span>${f[0]}</span><small class="num">${f[1]} kcal · ${f[5]}</small></button>`).join('')||'<button type="button" disabled><small>DB에 없음 — 값을 직접 입력하거나 AI 분석을 쓰세요</small></button>';
-  box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>pickFood(FOODS[+b.dataset.i])); });
+/* ---- 음식 자동 채우기: 내 음식(AI·직접 입력 학습분) → 즐겨찾기 → 내장 DB → AI ---- */
+const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,'');
+function allFoods(){ const my=(S.userFoods||[]).map(f=>[f.name,f.kcal,f.p,f.c,f.f,f.unit||'1회',f.cat||'etc','my']);
+  const fav=(S.fav||[]).map(f=>[f.name,f.kcal,f.p,f.c,f.f,'1회',f.cat||'etc','fav']);
+  return my.concat(fav,FOODS.map(f=>f.concat(['db']))); }
+function findFood(q){ const n=norm(q); if(!n) return {exact:null,hits:[]}; const all=allFoods(); const seen=new Set(); const uniq=all.filter(f=>{const k=norm(f[0]); if(seen.has(k)) return false; seen.add(k); return true;});
+  const exact=uniq.find(f=>norm(f[0])===n)||null; const starts=uniq.filter(f=>norm(f[0]).startsWith(n)), incl=uniq.filter(f=>!norm(f[0]).startsWith(n)&&norm(f[0]).includes(n));
+  return {exact,hits:starts.concat(incl).slice(0,12)}; }
+function setSrc(msg,cls){ const el=$('fSrc'); el.textContent=msg||''; el.className='src '+(cls||''); }
+let fTimer=null, fAiSeq=0;
+$('fName').addEventListener('input',()=>{ fSel=null; const q=$('fName').value.trim(); const box=$('sugg'); clearTimeout(fTimer);
+  if(!q){ box.hidden=true; setSrc(''); return; }
+  const {exact,hits}=findFood(q);
+  box.innerHTML=hits.map((f,i)=>`<button type="button" data-i="${i}"><span>${f[0]}</span><small class="num">${Math.round(f[1])} kcal · ${f[5]}${f[7]==='my'?' · 내 음식':f[7]==='fav'?' · ★':''}</small></button>`).join('')||`<button type="button" disabled><small>${API.key?'DB에 없음 — 입력을 멈추면 AI가 자동 분석합니다':'DB에 없음 — 값을 직접 입력하거나 설정에서 AI 키를 등록하세요'}</small></button>`;
+  box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>pickFood(hits[+b.dataset.i]));
+  if(exact){ fillFrom(exact); setSrc(`${exact[7]==='db'?'내장 DB':exact[7]==='my'?'내 음식':'즐겨찾기'}에서 자동 입력 · ${exact[5]} 기준`,'db'); return; }
+  if(hits.length===1){ fillFrom(hits[0]); setSrc(`유사 항목 「${hits[0][0]}」 값으로 채움 — 다르면 계속 입력`,'db'); return; }
+  ['fKcal','fP','fC','fF'].forEach(i=>$(i).value=''); setSrc(hits.length?`${hits.length}개 후보 — 목록에서 선택하거나 계속 입력`:(API.key?'입력을 멈추면 AI가 분석합니다…':'DB에 없음'),hits.length?'':'miss');
+  if(!hits.length&&API.key&&q.length>=2) fTimer=setTimeout(()=>aiFillByName(q),1200); });
+$('fName').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); resolveName(); $('fName').blur(); } });
+$('fName').addEventListener('blur',()=>setTimeout(resolveName,150));
+function resolveName(){ if(fSel) return; const q=$('fName').value.trim(); if(!q) return; const {exact,hits}=findFood(q);
+  if(exact) { pickFood(exact); return; } if(hits.length){ pickFood(hits[0]); setSrc(`유사 항목 「${hits[0][0]}」 값으로 채움 — 다르면 이름을 고쳐 주세요`,'db'); return; }
+  if(API.key&&!$('fKcal').value){ clearTimeout(fTimer); aiFillByName(q); } }
+function fillFrom(f){ fSel=f; applyQty(); }
+async function aiFillByName(q){ if(!API.key) return; const seq=++fAiSeq; setSrc('AI 분석 중…','ai');
+  try{ const txt=await callAI([{type:'text',text:`"${q}"을(를) 한국 성인 1인분 기준으로 분석해 JSON만 출력해줘. 형식: {"name":"음식 이름(짧게)","unit":"1인분 기준량(예: 1그릇(300g))","kcal":숫자,"protein_g":숫자,"carb_g":숫자,"fat_g":숫자,"category":"rice|soup|meat|fish|noodle|bread|side|veg|dairy|snack|drink|fast|alcohol"}`}],300);
+    if(seq!==fAiSeq||norm($('fName').value)!==norm(q)) return; const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1));
+    const f=[q,Math.round(js.kcal),+js.protein_g||0,+js.carb_g||0,+js.fat_g||0,js.unit||'1인분',js.category||guessCat(q),'ai']; fillFrom(f); $('sugg').hidden=true;
+    setSrc(`AI 분석 (어림값) · ${f[5]} 기준 · 기록하면 「내 음식」에 저장됩니다`,'ai');
+  }catch(e){ if(seq===fAiSeq) setSrc('AI 분석 실패: '+e.message.slice(0,60)+' — 값을 직접 입력하세요','miss'); } }
 document.addEventListener('click',e=>{ if(!e.target.closest('.search')) $('sugg').hidden=true; });
 /* 즐겨찾기 · 최근 음식 */
 const isFav=n=>(S.fav||[]).some(f=>f.name===n);
@@ -969,7 +998,7 @@ function recentFoods(){ const seen=new Set(), out=[]; Object.keys(S.food).sort()
 function renderFavChips(){ const box=$('favChips'); const fav=S.fav||[], rec=recentFoods(); if(!fav.length&&!rec.length){ box.innerHTML='<span class="lbl">기록한 음식은 여기에 「최근」으로, ★를 누르면 「즐겨찾기」로 나타납니다</span>'; return; }
   box.innerHTML=(fav.length?'<span class="lbl">★</span>'+fav.map((f,i)=>`<button type="button" class="fav" data-t="fav" data-i="${i}">${f.name}</button>`).join(''):'')+(rec.length?'<span class="lbl">최근</span>'+rec.map((f,i)=>`<button type="button" data-t="rec" data-i="${i}">${f.name}</button>`).join(''):'');
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const f=(b.dataset.t==='fav'?fav:rec)[+b.dataset.i]; pickFood([f.name,f.kcal,f.p,f.c,f.f,'1회',f.cat||'etc']); if(f.meal) $('fMeal').value=f.meal; toast(`${f.name} 불러옴 — 수량 확인 후 기록 추가`); }); }
-function pickFood(f){ fSel=f; $('fName').value=f[0]; $('sugg').hidden=true; applyQty(); }
+function pickFood(f){ fSel=f; $('fName').value=f[0]; $('sugg').hidden=true; applyQty(); setSrc(`${f[7]==='db'?'내장 DB':f[7]==='my'?'내 음식':f[7]==='ai'?'AI 분석':'즐겨찾기'} · ${f[5]} 기준`,f[7]==='ai'?'ai':'db'); }
 function applyQty(){ if(!fSel) return; const q=Number($('fQty').value)||1; $('fKcal').value=Math.round(fSel[1]*q); $('fP').value=Math.round(fSel[2]*q*10)/10; $('fC').value=Math.round(fSel[3]*q*10)/10; $('fF').value=Math.round(fSel[4]*q*10)/10; }
 $('fQty').addEventListener('input',applyQty);
 /* 사진 */
@@ -980,8 +1009,11 @@ $('addFood').onclick=()=>{
   const k=key(cur), name=$('fName').value.trim(); const kcal=Number($('fKcal').value);
   if(!name){ toast('음식 이름을 입력하세요'); return; } if(!kcal&&kcal!==0){ toast('kcal을 입력하거나 DB에서 선택하세요'); return; }
   const item={id:String(Date.now()),name,meal:$('fMeal').value,qty:Number($('fQty').value)||1,kcal,p:Number($('fP').value)||0,c:Number($('fC').value)||0,f:Number($('fF').value)||0,cat:fSel?fSel[6]:guessCat(name),photo:fPhotoData,note:$('fDesc').value.trim().slice(0,60),at:Date.now()};
-  S.food[k]=S.food[k]||[]; S.food[k].push(item); save();
-  ['fName','fKcal','fP','fC','fF','fDesc'].forEach(i=>$(i).value=''); $('fQty').value=1; fSel=null; $('fPhotoClear').click(); $('aiOut').textContent='';
+  S.food[k]=S.food[k]||[]; S.food[k].push(item);
+  // 내장 DB에 없는 음식(AI·직접 입력)은 「내 음식」으로 학습 → 다음부터 즉시 자동 입력
+  const q=item.qty||1, inDb=FOODS.some(f=>norm(f[0])===norm(name)); if(!inDb){ S.userFoods=(S.userFoods||[]).filter(f=>norm(f.name)!==norm(name)); S.userFoods.push({name,kcal:kcal/q,p:item.p/q,c:item.c/q,f:item.f/q,cat:item.cat,unit:fSel&&fSel[5]?fSel[5]:'1회',src:fSel?fSel[7]:'manual'}); if(S.userFoods.length>300) S.userFoods=S.userFoods.slice(-300); }
+  save();
+  ['fName','fKcal','fP','fC','fF','fDesc'].forEach(i=>$(i).value=''); $('fQty').value=1; fSel=null; $('fPhotoClear').click(); $('aiOut').textContent=''; setSrc('');
   renderFood(); toast('기록했습니다');
 };
 function guessCat(n){ n=n.toLowerCase(); if(/치킨|피자|햄버거|버거|돈까스|감자튀김|탕수육|튀김/.test(n)) return 'fast'; if(/맥주|소주|와인|막걸리|하이볼|술/.test(n)) return 'alcohol'; if(/과자|초코|케이크|아이스크림|도넛|빵|쿠키|사탕|젤리/.test(n)) return 'snack'; if(/콜라|주스|라떼|음료|사이다/.test(n)) return 'drink'; return 'etc'; }
@@ -1024,7 +1056,7 @@ async function aiFood(){
     const content=[]; if(fPhotoData) content.push({type:'image',data:fPhotoData.split(',')[1]});
     content.push({type:'text',text:`다음 음식(사진${desc?' 및 설명: "'+desc+'"':''})을 한국 성인 1인분 기준으로 분석해 JSON만 출력해줘. 형식: {"name":"음식 이름(짧게)","kcal":숫자,"protein_g":숫자,"carb_g":숫자,"fat_g":숫자,"category":"rice|soup|meat|fish|noodle|bread|side|veg|dairy|snack|drink|fast|alcohol","comment":"한 줄 평가(한국어, 40자 이내)"} 여러 음식이면 합산해서 하나로.`});
     const txt=await callAI(content,400); const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1));
-    $('fName').value=js.name||desc; $('fKcal').value=Math.round(js.kcal); $('fP').value=js.protein_g; $('fC').value=js.carb_g; $('fF').value=js.fat_g; fSel=[js.name,js.kcal,js.protein_g,js.carb_g,js.fat_g,'1인분',js.category||'etc']; $('fQty').value=1;
+    $('fName').value=js.name||desc; $('fKcal').value=Math.round(js.kcal); $('fP').value=js.protein_g; $('fC').value=js.carb_g; $('fF').value=js.fat_g; fSel=[js.name,js.kcal,js.protein_g,js.carb_g,js.fat_g,'1인분',js.category||'etc','ai']; $('fQty').value=1; setSrc('AI 사진 분석 (어림값) · 기록하면 「내 음식」에 저장됩니다','ai');
     $('aiOut').textContent=`AI: ${js.name} 약 ${Math.round(js.kcal)} kcal — ${js.comment||''}`;
   }catch(e){ $('aiOut').textContent='분석 실패: '+e.message+(location.hostname.includes('claude.ai')?' (이 미리보기 환경에서는 외부 API 호출이 차단됩니다. GitHub Pages나 로컬 파일에서 사용하세요)':''); }
   $('aiFood').disabled=false;
@@ -1181,7 +1213,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.7';
+const APP_VERSION='0.8';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
