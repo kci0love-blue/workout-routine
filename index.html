@@ -181,6 +181,12 @@ h2{margin:0 0 10px;font-size:17px}
 .mchk input{width:18px;height:18px;margin:0}
 .mf{margin-top:6px;grid-template-columns:repeat(3,1fr)}
 
+.bw{margin-top:12px;padding:12px;border-radius:12px;background:var(--panel2)}
+.bw h4{margin:0 0 8px;font-size:13.5px}.bw h4 small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.bw .search input{background:var(--panel)}
+.bwrow{display:grid;grid-template-columns:1fr 64px 64px auto;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.bwrow b{align-self:center}.bwrow label{font-size:11px;color:var(--muted);display:grid;gap:2px}.bwrow input{padding:6px 8px;background:var(--panel)}
+.bwrow .del{color:var(--faint);padding:6px}.bwrow small{grid-column:1/-1;color:var(--faint);font-size:11px;margin-top:-4px}
 /* rest timer */
 .timer{margin-top:12px;padding:12px;border-radius:12px;background:var(--panel2);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
 .timer .clock{font-size:34px;font-weight:900;line-height:1;min-width:92px;text-align:center;font-variant-numeric:tabular-nums}
@@ -419,7 +425,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.10</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.11</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -444,7 +450,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.10 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.11 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -715,7 +721,7 @@ function bmiLabel(b){ return b<18.5?'저체중':b<23?'정상':b<25?'과체중':'
 /* ============ 칼로리 모델 ============ */
 function kcalFor(ex, rec){
   const w=weight(); if(!w) return 0; const r=rec||{};
-  if(ex.type==='cardio'){ const min=Number(r.min??ex.min); return ex.met*w*(min/60); }
+  if(ex.type==='cardio'){ const min=Number(r.min??ex.min); return ex.met*w*(min/60)+bwKcal(r.bw); }
   if(ex.type==='time'){ const sec=Number(r.sec??ex.sec), sets=Number(r.sets??ex.sets); return ex.met*w*(sec*sets/3600)+3.5*w*(45*sets/3600); }
   if(ex.type==='strength'){
     const kg=Number(r.kg??ex.kg), reps=Number(r.reps??ex.reps), sets=Number(r.sets??ex.sets);
@@ -725,6 +731,20 @@ function kcalFor(ex, rec){
   return 0;
 }
 
+/* ============ 맨몸 운동 (스트레칭·회복 항목에 추가) ============ */
+/* [이름, type(time|reps), 기본 세트, 기본 초/회, MET, 부위, 비고] */
+const BW=[
+['플랭크','time',3,60,3.0,'core','팔꿈치·발끝, 허리 일자'],['사이드 플랭크 (좌·우)','time',3,30,3.0,'core','좌우 각 30초 = 1세트'],['버드독','reps',3,15,2.8,'core','좌우 교대 15회'],['데드버그','reps',3,15,2.8,'core','허리 바닥에 붙이기'],
+['글루트 브릿지','reps',3,15,3.0,'legs','엉덩이 꽉 조이기'],['힙 힌지 (맨몸)','reps',3,12,2.5,'back','데드리프트 준비 동작'],['맨몸 스쿼트','reps',3,15,4.0,'legs',''],['런지 (좌·우)','reps',3,10,4.0,'legs','좌우 각 10회'],['월 싯','time',3,30,3.5,'legs','벽에 기대 앉기'],['카프 레이즈','reps',3,20,2.5,'legs',''],
+['푸시업','reps',3,10,3.8,'chest','무릎 대고 가능'],['인클라인 푸시업','reps',3,12,3.0,'chest','벤치·벽 짚고'],['슈퍼맨','reps',3,12,2.8,'back','팔다리 동시에 들기'],['Y-T-W 레이즈','reps',2,10,2.5,'back','어깨 안정화'],
+['마운틴 클라이머','time',3,30,6.0,'core','유산소성'],['버피','reps',3,8,8.0,'cardio','고강도'],['점핑잭','time',3,45,6.0,'cardio',''],['하이 니','time',3,30,6.0,'cardio',''],
+['캣카우','reps',2,10,2.0,'core','척추 가동성'],['힙 플렉서 스트레칭 (좌·우)','time',2,30,2.0,'legs','좌우 각 30초'],['햄스트링 스트레칭 (좌·우)','time',2,30,2.0,'legs',''],['흉추 회전 (좌·우)','reps',2,10,2.0,'back',''],['폼롤러 (등·다리)','time',1,300,2.3,'legs','5분'],['워킹 (제자리·산책)','time',1,600,3.3,'cardio','10분']
+];
+const BWBY={}; BW.forEach(b=>BWBY[b[0]]=b);
+function bwMinutes(items){ return (items||[]).reduce((a,i)=>a+(i.type==='time'?i.sets*i.sec:i.sets*i.reps*3)/60,0); }
+function bwKcal(items){ const w=weight(); if(!w) return 0; return (items||[]).reduce((a,i)=>{ const work=i.type==='time'?i.sets*i.sec:i.sets*i.reps*3; return a+i.met*w*(work/3600)+2.5*w*(Math.max(0,i.sets-1)*30/3600); },0); }
+function bwSpec(items){ return (items||[]).map(i=>`${i.name} ${i.type==='time'?(i.sec>=60?(i.sec/60)+'분':i.sec+'초'):i.reps+'회'}×${i.sets}`).join(', '); }
+
 /* ============ 자동 운동 설정 ============ */
 function lastPain(k){ // 최근 3일 내 통증 기록
   const w=S.weekly.filter(x=>x.date<=k && x.date>=shift(k,-3) && x.pain!=null).sort((a,b)=>a.date<b.date?1:-1)[0];
@@ -732,7 +752,7 @@ function lastPain(k){ // 최근 3일 내 통증 기록
 }
 function trainedGroups(k){ // 해당 날 완료된 근력 부위 → {g: sets} (기록 자체에 저장된 부위·세트 사용)
   const log=S.log[k]||{}, out={};
-  for(const id in log){ const r=log[id]; if(!r.done) continue; const e=EXBYID[id]; const g=r.g||(e&&e.g); if(!g||g==='cardio'||g==='none') continue; const n=Number(r.sets??(e&&e.sets)??1); out[g]=(out[g]||0)+n; const g2=r.g2||(e&&e.g2); if(g2) out[g2]=(out[g2]||0)+n; }
+  for(const id in log){ const r=log[id]; if(!r.done) continue; (r.bw||[]).forEach(i=>{ if(i.g&&i.g!=='cardio') out[i.g]=(out[i.g]||0)+Number(i.sets||1); }); const e=EXBYID[id]; const g=r.g||(e&&e.g); if(!g||g==='cardio'||g==='none') continue; const n=Number(r.sets??(e&&e.sets)??1); out[g]=(out[g]||0)+n; const g2=r.g2||(e&&e.g2); if(g2) out[g2]=(out[g2]||0)+n; }
   return out;
 }
 /* 전체 운동 목록(이름 기준 중복 제거) · id → 운동 정의 */
@@ -849,7 +869,8 @@ function evaluate(k){
   // 운동 40
   const exMust=st.must.length?st.mustDone.length/st.must.length*30:30;
   const exOpt=st.optAll.length?st.optDone.length/st.optAll.length*10:(st.hit?10:0);
-  const exS=Math.round(exMust+exOpt); r.parts.push(['운동',exS,40]);
+  const logk=S.log[k]||{}; const bwAll=[].concat(...Object.values(logk).filter(x=>x.done&&x.bw).map(x=>x.bw)); const bwMin=bwMinutes(bwAll); const bonus=Math.min(5,Math.round(bwMin/2));
+  const exS=Math.min(40,Math.round(exMust+exOpt)+bonus); r.parts.push(['운동',exS,40]); r.bwMin=bwMin; if(bwAll.length) r.bwText=`맨몸 운동 ${bwAll.length}종 ${Math.round(bwMin)}분 (+${bonus})`;
   if(!st.any) r.msgs.push('운동 기록이 없습니다. 필수 항목만이라도 완료해 보세요.');
   else if(!st.hit) r.msgs.push(`필수 운동 ${st.must.length-st.mustDone.length}개가 남았습니다.`);
   if(!m.target){ r.parts.push(['칼로리',0,30],['단백질',0,15],['식단 균형',0,15]); r.score=exS; r.msgs.unshift('프로필(체중·키·나이)과 목표를 저장하면 식단 점수가 계산됩니다.'); return r; }
@@ -943,7 +964,7 @@ function renderToday(){
   $('goFood').onclick=()=>showView('food');
 }
 function actualSpec(e,r){
-  if(e.type==='cardio') return `${r.min??e.min}분 완료`;
+  if(e.type==='cardio') return `${r.min??e.min}분 완료${r.bw&&r.bw.length?' + '+bwSpec(r.bw):''}`;
   if(e.type==='time') return `${r.sec??e.sec}초 × ${r.sets??e.sets}세트 완료`;
   if(e.type==='strength') return `${e.assist?'보조 ':''}${r.kg??e.kg}kg | ${r.reps??e.reps}회 × ${r.sets??e.sets}세트 완료`;
   return '기록 완료';
@@ -958,18 +979,32 @@ function openEditor(id){
   const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet';
   let f='';
   if(e.type==='cardio') f=`<label>시간 (분)<input id="fMin" type="number" inputmode="numeric" value="${r.min??e.min}"></label>`;
+  let bwItems=clone(r.bw||[]);
   if(e.type==='time') f=`<label>유지 (초)<input id="fSec" type="number" inputmode="numeric" value="${r.sec??e.sec}"></label><label>세트<input id="fSets" type="number" inputmode="numeric" value="${r.sets??e.sets}"></label>`;
   if(e.type==='strength') f=`<label>${e.assist?'보조 중량':'중량'} (kg)<input id="fKg" type="number" step="2.5" inputmode="decimal" value="${r.kg??e.kg}"></label><label>횟수<input id="fReps" type="number" inputmode="numeric" value="${r.reps??e.reps}"></label><label>세트<input id="fSets" type="number" inputmode="numeric" value="${r.sets??e.sets}"></label>`;
   sh.innerHTML=`<div class="box"><h3>${e.name}</h3><div class="plan">계획: ${e.spec}${e.adj?` · <span style="color:var(--opt)">${e.adj}</span>`:''} · 실제 수행한 값으로 고쳐서 완료하세요</div>
     <div class="fields">${f}</div><div class="est">예상 소모 <b class="num" id="est">–</b> kcal</div>
+    ${e.type==='cardio'?`<div class="bw"><h4>맨몸 운동 추가 <small>스트레칭·회복 시간에 한 코어·맨몸 운동을 넣으면 칼로리와 점수(최대 +5)에 반영됩니다</small></h4><div class="search"><input id="bwName" placeholder="예) 사이드 플랭크, 버드독, 데드버그" autocomplete="off"><div class="sugg" id="bwSugg" hidden></div></div><div id="bwList"></div><div class="est" id="bwEst"></div></div>`:''}
     ${e.type!=='cardio'?`<div class="timer"><div class="clock num" id="tClock">${fmtT(REST.dur)}</div><div class="tbtns"><button id="t60" data-d="60">60초</button><button id="t90" data-d="90">90초</button><button id="t120" data-d="120">120초</button><button id="tStart">▶ 시작</button><button id="tReset">↺</button></div><small id="tInfo">세트 끝나면 「시작」 — 끝나면 진동·알림음</small></div>`:''}
     <div class="acts">${r.done?'<button class="btn danger" id="undo">완료 취소</button>':''}<button class="btn" id="cancel">닫기</button><button class="btn pri" id="ok">${r.done?'수정 저장':'완료 처리'}</button></div></div>`;
   document.body.appendChild(sh);
-  const read=()=>{const o={}; if($('fMin'))o.min=+$('fMin').value; if($('fSec'))o.sec=+$('fSec').value; if($('fKg'))o.kg=+$('fKg').value; if($('fReps'))o.reps=+$('fReps').value; if($('fSets'))o.sets=+$('fSets').value; return o;};
+  const read=()=>{const o={}; if($('fMin'))o.min=+$('fMin').value; if($('fSec'))o.sec=+$('fSec').value; if($('fKg'))o.kg=+$('fKg').value; if($('fReps'))o.reps=+$('fReps').value; if($('fSets'))o.sets=+$('fSets').value; if(e.type==='cardio'&&bwItems.length) o.bw=bwItems; return o;};
+  if(e.type==='cardio'){
+    const drawBw=()=>{ $('bwList').innerHTML=bwItems.map((i,idx)=>`<div class="bwrow"><b>${i.name}</b><label>세트<input type="number" inputmode="numeric" value="${i.sets}" data-i="${idx}" data-f="sets"></label><label>${i.type==='time'?'초':'회'}<input type="number" inputmode="numeric" value="${i.type==='time'?i.sec:i.reps}" data-i="${idx}" data-f="${i.type==='time'?'sec':'reps'}"></label><button type="button" class="del" data-del="${idx}">✕</button>${i.note?`<small>${i.note}</small>`:''}</div>`).join('');
+      $('bwList').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{ bwItems[+inp.dataset.i][inp.dataset.f]=Math.max(0,+inp.value||0); est(); bwEst(); });
+      $('bwList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ bwItems.splice(+b.dataset.del,1); drawBw(); est(); bwEst(); }); bwEst(); };
+    const bwEst=()=>{ const m=bwMinutes(bwItems); $('bwEst').innerHTML=bwItems.length?`맨몸 운동 약 <b class="num">${Math.round(m)}</b>분 · <b class="num">${weight()?Math.round(bwKcal(bwItems)):'–'}</b> kcal · 점수 +${Math.min(5,Math.round(m/2))}`:''; };
+    const addBw=b=>{ if(bwItems.some(i=>i.name===b[0])){ toast('이미 추가된 운동입니다'); return; } bwItems.push({name:b[0],type:b[1],sets:b[2],[b[1]==='time'?'sec':'reps']:b[3],met:b[4],g:b[5],note:b[6]}); $('bwName').value=''; $('bwSugg').hidden=true; drawBw(); est(); };
+    $('bwName').addEventListener('input',()=>{ const q=norm($('bwName').value); const box=$('bwSugg'); if(!q){ box.hidden=true; return; } const hits=BW.filter(b=>norm(b[0]).includes(q)).slice(0,10);
+      box.innerHTML=hits.map((b,i)=>`<button type="button" data-i="${BW.indexOf(b)}"><span>${b[0]}</span><small>${b[1]==='time'?b[3]+'초':b[3]+'회'} × ${b[2]}세트</small></button>`).join('')||'<button type="button" disabled><small>목록에 없음 — 아래 「직접 추가」</small></button>';
+      if(!hits.length) box.innerHTML+=`<button type="button" data-custom="1"><span>「${$('bwName').value.trim()}」 직접 추가</span><small>회수형 · 3세트</small></button>`;
+      box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>addBw(BW[+b.dataset.i])); const c=box.querySelector('[data-custom]'); if(c) c.onclick=()=>addBw([$('bwName').value.trim(),'reps',3,12,3.0,'core','']); });
+    $('bwName').addEventListener('focus',()=>{ if(!$('bwName').value){ const box=$('bwSugg'); box.innerHTML=BW.slice(0,10).map(b=>`<button type="button" data-i="${BW.indexOf(b)}"><span>${b[0]}</span><small>${b[1]==='time'?b[3]+'초':b[3]+'회'} × ${b[2]}세트</small></button>`).join(''); box.hidden=false; box.querySelectorAll('button').forEach(b=>b.onclick=()=>addBw(BW[+b.dataset.i])); } });
+    drawBw(); }
   const est=()=>{$('est').textContent=weight()?Math.round(kcalFor(e,read())):'–';};
   sh.querySelectorAll('input').forEach(i=>i.oninput=est); est();
   if(e.type!=='cardio') bindTimer(sh);
-  const close=()=>{ stopTimer(); sh.remove(); }; sh.onclick=ev=>{if(ev.target===sh)close();}; $('cancel').onclick=close;
+  const close=()=>{ stopTimer(); sh.remove(); }; sh.onclick=ev=>{if(ev.target===sh)close(); else if(!ev.target.closest('.search')&&$('bwSugg')) $('bwSugg').hidden=true;}; $('cancel').onclick=close;
   $('ok').onclick=()=>{ freezePlan(k); S.log[k]=S.log[k]||{}; S.log[k][id]=Object.assign({},read(),{done:true,name:e.name,g:e.g,g2:e.g2,at:Date.now()}); save(); close(); renderToday(); const st=dayStats(k); toast(st.hit?'🎯 오늘 운동 목표 달성!':'완료 처리했습니다'); };
   if($('undo')) $('undo').onclick=()=>{toggleDone(k,e,false); close(); renderToday();};
 }
@@ -1003,6 +1038,7 @@ function renderFood(){
       <div class="tile"><b class="num">${Math.round(st.kcal)}</b><small>운동 소모 kcal</small></div>
       <div class="tile"><b class="num">${ev.net!=null?(ev.net>0?'+':'')+ev.net:'–'}</b><small>순 에너지 (섭취−소비)</small></div></div>
     <div class="verdict"><b>목표 달성 판정: <span class="pill ${gr[1]}">${gr[0]}</span> ${ev.ready?(S.goal.type==='loss'?(ev.net<=-300?'— 감량 방향으로 잘 가고 있습니다':ev.net<0?'— 소폭 적자, 조금 더 줄이면 좋습니다':'— 오늘은 섭취가 소비보다 많습니다'):S.goal.type==='gain'?(ev.net>=100?'— 증량에 필요한 잉여 확보':'— 근육 증가에는 섭취가 부족합니다'):(Math.abs(ev.net)<=250?'— 균형 잘 유지 중':'— 유지 범위를 벗어났습니다')):''}</b>
+    ${ev.bwText?`<div style="font-size:12.5px;margin-top:4px">${ev.bwText}</div>`:''}
     ${ev.supp&&ev.supp.total?`<div style="font-size:12.5px;margin-top:4px">영양제 <b class="num">${ev.supp.done.length}/${ev.supp.total}</b>${ev.supp.done.length?' · '+ev.supp.done.map(s=>s.name).join(', '):''}</div>`:''}
     <ul>${ev.msgs.map(x=>`<li>${x}</li>`).join('')}</ul>
     <div class="acts"><button class="btn sm" id="aiEval">✨ AI 총평 받기</button></div><div class="aiout" id="aiEvalOut">${(S.ai&&S.ai[k])||''}</div></div>`;
@@ -1308,7 +1344,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.10';
+const APP_VERSION='0.11';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
