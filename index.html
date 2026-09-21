@@ -220,6 +220,7 @@ h2{margin:0 0 10px;font-size:17px}
 .chart .ar{fill:var(--accent);opacity:.12}
 .chart .pt{fill:var(--accent);stroke:var(--panel2);stroke-width:2}
 .chart .goal{stroke:var(--ok);stroke-dasharray:4 4;stroke-width:1.5}
+.chart .ma{fill:none;stroke:var(--text);stroke-dasharray:3 4;stroke-width:1.5;opacity:.6}
 .chart .lastlbl{fill:var(--text);font-weight:700;font-size:11px}
 
 /* calendar */
@@ -335,6 +336,9 @@ h2{margin:0 0 10px;font-size:17px}
       <h3>체중 추세 <span class="pill" id="wGoalPill"></span></h3><div class="chart" id="chWeight"></div>
       <h3>허리둘레 추세</h3><div class="chart" id="chWaist"></div>
       <h3>주간 평균 점수</h3><div class="chart" id="chScore"></div>
+      <h3>골격근량 추세 <span class="pill">점선 = 4회 평균</span></h3><div class="chart" id="chMuscle"></div>
+      <h3>체지방량 추세 <span class="pill">점선 = 4회 평균</span></h3><div class="chart" id="chFatKg"></div>
+      <h3>체지방률 추세</h3><div class="chart" id="chFat"></div>
       <h3>운동 중량 추세 <select id="chExSel"></select></h3><div class="chart" id="chEx"></div>
     </div>
     <p class="help" style="margin-top:8px">날짜를 누르면 그날의 루틴과 기록으로 이동합니다. 점수는 운동+식단 종합 점수입니다.</p>
@@ -374,16 +378,31 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
 
     <div class="card">
-      <h2>주간 기록 (일요일 필수 항목)</h2>
-      <p class="help">체중·허리둘레·통증을 주 1회 남깁니다. 통증이 5 이상이면 다음 날 운동이 자동으로 회복 모드로 바뀝니다.</p>
+      <h2>주간 측정 기록 <span class="pill" id="wDue"></span></h2>
+      <p class="help">매주 <b>토요일 또는 일요일 아침, 기상 직후·화장실 후·공복</b>에 같은 조건으로 잽니다. 체중·허리둘레는 필수, 인바디 항목은 잰 주에만 입력하세요. 통증이 5 이상이면 다음 날 운동이 회복 모드로 바뀝니다.</p>
       <div class="fields">
         <label>날짜<input id="wDate" type="date"></label>
+        <label>측정 조건<select id="wCond"><option value="fast">아침 공복 (권장)</option><option value="pre">운동 전·식후 3h↑</option><option value="other">그 외 (비교 제외)</option></select></label>
         <label>체중 (kg)<input id="wWeight" type="number" step="0.1" inputmode="decimal"></label>
         <label>허리둘레 (cm)<input id="wWaist" type="number" step="0.1" inputmode="decimal"></label>
+        <label>골격근량 (kg)<input id="wMuscle" type="number" step="0.1" inputmode="decimal" placeholder="인바디"></label>
+        <label>체지방량 (kg)<input id="wFatKg" type="number" step="0.1" inputmode="decimal" placeholder="인바디"></label>
+        <label>체지방률 (%)<input id="wFat" type="number" step="0.1" inputmode="decimal" placeholder="인바디"></label>
+        <label>내장지방 레벨<input id="wVisc" type="number" step="1" inputmode="numeric" placeholder="인바디"></label>
+        <label>기초대사량 (kcal)<input id="wBmr" type="number" step="1" inputmode="numeric" placeholder="선택"></label>
+        <label>인바디 점수<input id="wScore" type="number" step="1" inputmode="numeric" placeholder="선택"></label>
         <label>통증 (0~10)<input id="wPain" type="number" min="0" max="10" inputmode="numeric"></label>
-        <label class="wide">통증 부위 (선택)<select id="wPainPart"><option value="">없음</option><option value="legs">무릎·하체</option><option value="back">허리·등</option><option value="chest">어깨·가슴</option><option value="core">복부·코어</option></select></label>
+        <label>통증 부위<select id="wPainPart"><option value="">없음</option><option value="legs">무릎·하체</option><option value="back">허리·등</option><option value="chest">어깨·가슴</option><option value="core">복부·코어</option></select></label>
       </div>
+      <div class="photo" style="margin-top:10px">
+        <img id="wPhotoPrev" alt="" hidden>
+        <label class="filebtn">📷 결과지 사진<input id="wPhoto" type="file" accept="image/*" capture="environment"></label>
+        <button class="btn sm" id="wPhotoClear" hidden>제거</button>
+        <button class="btn sm" id="wAiRead">✨ AI로 숫자 읽기</button>
+      </div>
+      <div class="aiout" id="wAiOut"></div>
       <div class="acts"><button class="btn pri" id="saveWeekly">기록 추가</button></div>
+      <div class="analysis" id="ibAnalysis" style="margin-top:12px"></div>
       <div id="weeklyList" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
     </div>
 
@@ -400,7 +419,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.9a</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.10</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -425,7 +444,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.9a · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.10 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -641,7 +660,7 @@ const ROUTINE = {
     {id:'sat3',name:'전신 스트레칭',img:'stretch',type:'cardio',g:'cardio',min:10,met:2.3,spec:'10분',lvl:'must'}]},
   0:{name:'일요일',focus:'완전 회복',color:'var(--dsun)',ex:[
     {id:'sun1',name:'완전 휴식 또는 산책',img:'stretchU',type:'cardio',g:'cardio',min:25,met:3.0,spec:'20~30분',lvl:'must'},
-    {id:'sun2',name:'체중·허리둘레·통증',img:'stretchU',type:'rest',g:'none',spec:'주 1회 기록',lvl:'must'}]}
+    {id:'sun2',name:'체중·허리둘레·인바디·통증',img:'stretchU',type:'rest',g:'none',spec:'주 1회 기록 (토·일 아침 공복)',lvl:'must'}]}
 };
 /* 회복 모드(통증·과부하)일 때 대체 루틴 */
 const RECOVERY = {focus:'회복 유산소',ex:[
@@ -901,6 +920,7 @@ function renderToday(){
   else if(Number(S.goal.auto)&&S.plan[k]) autoHtml=`<div class="auto"><b>고정된 루틴</b>기록이 시작되어 오늘 루틴이 고정되었습니다.<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button></div></div>`;
   $('head').innerHTML=`<h1>${day.name}</h1><div class="sub">${day.focus}</div><div class="hint">${day.rot?day.rot+' · ':''}사진 → 이름 → 중량·횟수 순서로 확인</div>
     <div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><span class="num">${st.done.length}/${day.ex.length} 완료 · 필수 ${st.mustDone.length}/${st.must.length}</span></div>${autoHtml}`;
+  { const lastAny=S.weekly[S.weekly.length-1]; const dow=cur.getDay(); const todayK=key(new Date()); if(k===todayK&&(dow===6||dow===0)&&(!lastAny||(new Date()-fromKey(lastAny.date))/864e5>=6)) $('head').insertAdjacentHTML('beforeend',`<div class="auto" style="border:1px solid var(--must)"><b>⚖️ 이번 주 측정</b>아침 공복에 체중·허리둘레(가능하면 인바디)를 재고 기록하세요.<div class="acts"><button class="btn sm" id="goWeekly">측정 기록 입력</button></div></div>`); if($('goWeekly')) $('goWeekly').onclick=()=>{ showView('profile'); $('wDate').value=k; $('wWeight').scrollIntoView({behavior:'smooth',block:'center'}); }; }
   if($('useBase')) $('useBase').onclick=()=>{ S.plan[k]=clone(planFor(k,true)); S.plan[k].auto=false; save(); renderToday(); toast('오늘은 기본 루틴으로 진행합니다'); };
   if($('resetPlan')) $('resetPlan').onclick=()=>{ if(S.log[k]&&Object.keys(S.log[k]).length&&!confirm('오늘 완료 기록이 있습니다. 루틴을 다시 생성하면 기록과 항목이 어긋날 수 있습니다. 계속할까요?')) return; delete S.plan[k]; save(); renderToday(); };
   $('exList').innerHTML=day.ex.map((e,i)=>{const r=log[e.id]||{};const done=!!r.done;const kc=done?kcalFor(e,r):0;
@@ -934,7 +954,7 @@ function openEditor(id){
   const k=key(cur), day=planFor(k), e=day.ex.find(x=>x.id===id), r=(S.log[k]||{})[id]||{};
   if(e.type==='rest'){
     if(r.done){ toggleDone(k,e,false); renderToday(); return; }
-    toggleDone(k,e,true); renderToday(); showView('profile'); $('wDate').value=k; $('wWeight').focus(); toast('주간 기록을 입력하세요'); return; }
+    toggleDone(k,e,true); renderToday(); showView('profile'); $('wDate').value=k; $('wWeight').focus(); $('wWeight').scrollIntoView({behavior:'smooth',block:'center'}); toast('주간 측정 기록을 입력하세요'); return; }
   const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet';
   let f='';
   if(e.type==='cardio') f=`<label>시간 (분)<input id="fMin" type="number" inputmode="numeric" value="${r.min??e.min}"></label>`;
@@ -1104,6 +1124,7 @@ async function aiEvaluate(){
     const items=(S.food[k]||[]).map(i=>`${i.meal} ${i.name}${i.qty!==1?'×'+i.qty:''} ${Math.round(i.kcal)}kcal`).join(', ')||'기록 없음';
     const ex=st.done.map(e=>`${e.name}(${actualSpec(e,S.log[k][e.id])})`).join(', ')||'기록 없음';
     const txt=await callAI([{type:'text',text:`당신은 퍼스널 트레이너 겸 영양 코치입니다. 아래 하루 데이터를 보고 한국어로 5문장 이내의 총평을 써주세요. 잘한 점 1개, 개선점 2개, 내일 한 가지 실천 제안. 영양제(특히 크레아틴)의 섭취 여부·타이밍도 한 줄 언급. 과장 없이 구체적으로.
+인바디: ${(()=>{const ib=inbodyDelta(); if(!ib) return '기록 없음'; return `최근 ${ib.last.date} 체중 ${ib.last.weight??'-'}kg 골격근 ${ib.last.muscle??'-'}kg 체지방 ${ib.last.fatkg??'-'}kg(${ib.last.fat??'-'}%)`+(ib.d4?` / 4주 전 대비 ${inbodyVerdict(ib.d4)}`:'');})()}
 프로필: ${m.w}kg, 키 ${m.h}cm, ${m.age}세, 목표 ${({loss:'체지방 감량',maintain:'유지',gain:'근육 증가'})[S.goal.type]}, 목표 칼로리 ${m.target}kcal, 단백질 목표 ${m.protein}g
 운동: ${ex} (소모 약 ${Math.round(st.kcal)}kcal, 필수 ${st.mustDone.length}/${st.must.length})
 식단: ${items} (합계 ${Math.round(fd.kcal)}kcal, 단백질 ${Math.round(fd.p)}g, 탄수 ${Math.round(fd.c)}g, 지방 ${Math.round(fd.f)}g)
@@ -1152,6 +1173,7 @@ function lineChart(el, pts, o={}){ // pts: [{x:'YYYY-MM-DD', y:number}]
     ${grid.map(g=>`<text x="${L-4}" y="${(Y(g)+3.5).toFixed(1)}" text-anchor="end">${fmt(g)}</text>`).join('')}
     ${o.goal!=null?`<line class="goal" x1="${L}" x2="${W-R}" y1="${Y(o.goal).toFixed(1)}" y2="${Y(o.goal).toFixed(1)}"/><text x="${W-R}" y="${(Y(o.goal)-3).toFixed(1)}" text-anchor="end" style="fill:var(--ok)">목표 ${fmt(o.goal)}</text>`:''}
     <path class="ar" d="${area}"/><path class="ln" d="${d}"/>
+    ${o.ma&&pts.length>o.ma?`<path class="ma" d="${pts.map((p,i)=>{ if(i<o.ma-1) return ''; const s=ys.slice(i-o.ma+1,i+1); const a=s.reduce((x,y)=>x+y,0)/s.length; return `${i===o.ma-1?'M':'L'}${X(xs[i]).toFixed(1)},${Y(a).toFixed(1)}`; }).join(' ')}"/>`:''}
     ${pts.map((p,i)=>`<circle class="pt" cx="${X(xs[i]).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="4"/>`).join('')}
     ${xl.map(i=>`<text x="${X(xs[i]).toFixed(1)}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${dl(pts[i].x)}</text>`).join('')}
     <text class="lastlbl" x="${X(x1).toFixed(1)}" y="${(Y(last.y)-9).toFixed(1)}" text-anchor="end">${fmt(last.y)}${o.unit||''}</text>
@@ -1165,6 +1187,10 @@ function renderTrends(){
   const wk=S.weekly.filter(r=>r.weight).map(r=>({x:r.date,y:r.weight})); const m=metrics();
   $('wGoalPill').textContent=S.goal.weight?`목표 ${S.goal.weight}kg`:''; lineChart($('chWeight'),wk,{unit:'kg',goal:S.goal.weight?Number(S.goal.weight):null,label:'체중'});
   lineChart($('chWaist'),S.weekly.filter(r=>r.waist).map(r=>({x:r.date,y:r.waist})),{unit:'cm',label:'허리둘레'});
+  const ibs=S.weekly.filter(r=>r.cond!=='other');
+  lineChart($('chMuscle'),ibs.filter(r=>r.muscle).map(r=>({x:r.date,y:r.muscle})),{unit:'kg',label:'골격근량',ma:4});
+  lineChart($('chFatKg'),ibs.filter(r=>r.fatkg).map(r=>({x:r.date,y:r.fatkg})),{unit:'kg',label:'체지방량',ma:4});
+  lineChart($('chFat'),ibs.filter(r=>r.fat).map(r=>({x:r.date,y:r.fat})),{unit:'%',label:'체지방률'});
   const wkScores={}; const today=key(new Date()); Object.keys(S.log).concat(Object.keys(S.food)).filter((v,i,a)=>a.indexOf(v)===i&&v<=today).forEach(k=>{ const st=dayStats(k), fd=foodStats(k); if(!(st.any||fd.n)) return; const ev=evaluate(k); const wkk=weekKey(k); (wkScores[wkk]=wkScores[wkk]||[]).push(ev.score); });
   const sc=Object.keys(wkScores).sort().slice(-12).map(k=>({x:k,y:wkScores[k].reduce((a,b)=>a+b,0)/wkScores[k].length,extra:`${wkScores[k].length}일 기록`}));
   lineChart($('chScore'),sc,{unit:'점',fixed:[0,100],label:'주간 평균 점수'});
@@ -1205,15 +1231,47 @@ $('saveProfile').onclick=()=>{ readProfile(); const m=metrics(); if(!m.target){ 
   // 오늘 이후의 자동 플랜 스냅샷은 새 목표로 다시 생성되도록 제거 (기록 있는 날 제외)
   const today=key(new Date()); for(const k in S.plan){ if(k>=today&&!(S.log[k]&&Object.keys(S.log[k]).length)) delete S.plan[k]; }
   save(); renderDerived(); renderAnalysis(); toast('저장했습니다. 오늘부터 목표에 맞게 운동이 설정됩니다'); $('analysis').scrollIntoView({behavior:'smooth',block:'nearest'}); };
-$('saveWeekly').onclick=()=>{ const d=$('wDate').value||key(new Date()); const rec={date:d,weight:+$('wWeight').value||undefined,waist:+$('wWaist').value||undefined,pain:$('wPain').value===''?undefined:+$('wPain').value,part:$('wPainPart').value||undefined};
-  S.weekly=S.weekly.filter(x=>x.date!==d).concat(rec).sort((a,b)=>a.date<b.date?-1:1); if(rec.weight){S.profile.weight=rec.weight;$('pWeight').value=rec.weight;} if(rec.waist){S.profile.waist=rec.waist;$('pWaist').value=rec.waist;}
+const num=id=>{ const v=$(id).value; return v===''?undefined:+v; };
+$('saveWeekly').onclick=()=>{ const d=$('wDate').value||key(new Date()); if(!num('wWeight')&&!num('wMuscle')&&!num('wFat')&&num('wPain')==null){ toast('체중 또는 인바디 값을 하나 이상 입력하세요'); return; }
+  const rec={date:d,cond:$('wCond').value,weight:num('wWeight'),waist:num('wWaist'),muscle:num('wMuscle'),fatkg:num('wFatKg'),fat:num('wFat'),visc:num('wVisc'),bmr:num('wBmr'),ibscore:num('wScore'),pain:num('wPain'),part:$('wPainPart').value||undefined,photo:wPhotoData||undefined};
+  if(rec.weight&&rec.fat&&!rec.fatkg) rec.fatkg=Math.round(rec.weight*rec.fat/10)/10; if(rec.weight&&rec.fatkg&&!rec.fat) rec.fat=Math.round(rec.fatkg/rec.weight*1000)/10;
+  S.weekly=S.weekly.filter(x=>x.date!==d).concat(rec).sort((a,b)=>a.date<b.date?-1:1);
+  if(rec.weight){S.profile.weight=rec.weight;$('pWeight').value=rec.weight;} if(rec.waist){S.profile.waist=rec.waist;$('pWaist').value=rec.waist;} if(rec.fat){S.profile.fat=rec.fat;$('pFat').value=rec.fat;} if(rec.muscle){S.profile.muscle=rec.muscle;$('pMuscle').value=rec.muscle;}
+  ['wMuscle','wFatKg','wFat','wVisc','wBmr','wScore','wPain'].forEach(i=>$(i).value=''); $('wPhotoClear').click(); $('wAiOut').textContent='';
   for(let i=1;i<=3;i++){ const k=shift(d,i); if(!(S.log[k]&&Object.keys(S.log[k]).length)) delete S.plan[k]; }
-  save(); renderDerived(); renderWeekly(); toast(rec.pain>=5?'통증이 높아 다음 3일은 회복 루틴으로 설정됩니다':'주간 기록을 추가했습니다'); };
-function renderWeekly(){ const l=S.weekly.slice(-8).reverse(); $('weeklyList').innerHTML=l.length?l.map(r=>`<div class="num" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span>${r.date}</span><span>${r.weight?r.weight+'kg':'–'} · 허리 ${r.waist?r.waist+'cm':'–'} · 통증 ${r.pain??'–'}${r.part?'('+GNAME[r.part]+')':''}</span></div>`).join(''):'아직 기록이 없습니다.'; }
+  save(); renderDerived(); renderAnalysis(); renderWeekly(); toast(rec.pain>=5?'통증이 높아 다음 3일은 회복 루틴으로 설정됩니다':'주간 측정을 기록했습니다'); };
+/* 인바디 결과지 사진 */
+let wPhotoData=null;
+$('wPhoto').addEventListener('change',ev=>{ const file=ev.target.files[0]; if(!file) return; const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const c=document.createElement('canvas'); const s=Math.min(1,1000/Math.max(im.width,im.height)); c.width=Math.round(im.width*s); c.height=Math.round(im.height*s); c.getContext('2d').drawImage(im,0,0,c.width,c.height); wPhotoData=c.toDataURL('image/jpeg',0.7); $('wPhotoPrev').src=wPhotoData; $('wPhotoPrev').hidden=false; $('wPhotoClear').hidden=false; }; im.src=rd.result; }; rd.readAsDataURL(file); });
+$('wPhotoClear').onclick=()=>{ wPhotoData=null; $('wPhotoPrev').hidden=true; $('wPhotoClear').hidden=true; $('wPhoto').value=''; };
+$('wAiRead').onclick=async()=>{ if(!wPhotoData){ toast('결과지 사진을 먼저 첨부하세요'); return; } $('wAiOut').textContent='읽는 중…'; $('wAiRead').disabled=true;
+  try{ const txt=await callAI([{type:'image',data:wPhotoData.split(',')[1]},{type:'text',text:'이 인바디(체성분) 결과지에서 값을 읽어 JSON만 출력해줘. 없는 항목은 null. 형식: {"weight":체중kg,"muscle":골격근량kg,"fatkg":체지방량kg,"fat":체지방률%,"visc":내장지방레벨,"bmr":기초대사량kcal,"score":인바디점수,"date":"측정일 YYYY-MM-DD 또는 null"}'}],300);
+    const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1)); const set=(id,v)=>{ if(v!=null&&!isNaN(+v)) $(id).value=+v; };
+    set('wWeight',js.weight); set('wMuscle',js.muscle); set('wFatKg',js.fatkg); set('wFat',js.fat); set('wVisc',js.visc); set('wBmr',js.bmr); set('wScore',js.score); if(js.date&&/^\d{4}-\d{2}-\d{2}$/.test(js.date)) $('wDate').value=js.date;
+    $('wAiOut').textContent='읽은 값을 채웠습니다 — 결과지와 대조한 뒤 「기록 추가」'; }catch(e){ $('wAiOut').textContent='읽기 실패: '+e.message; } $('wAiRead').disabled=false; };
+/* 인바디 변화 판정: 첫 측정·4주 전 대비 (같은 조건의 측정만) */
+function inbodyDelta(){ const rs=S.weekly.filter(r=>r.muscle||r.fatkg||r.fat).filter(r=>r.cond!=='other'); if(!rs.length) return null;
+  const last=rs[rs.length-1], first=rs[0]; const ref=[...rs].reverse().find(r=>(fromKey(last.date)-fromKey(r.date))/864e5>=21)||null;
+  const dv=(a,b,f)=>(a&&b&&a[f]!=null&&b[f]!=null)?Math.round((a[f]-b[f])*10)/10:null;
+  return {last,first,ref,n:rs.length,d4:ref?{w:dv(last,ref,'weight'),m:dv(last,ref,'muscle'),f:dv(last,ref,'fatkg'),p:dv(last,ref,'fat'),days:Math.round((fromKey(last.date)-fromKey(ref.date))/864e5)}:null,d0:first!==last?{w:dv(last,first,'weight'),m:dv(last,first,'muscle'),f:dv(last,first,'fatkg'),p:dv(last,first,'fat'),days:Math.round((fromKey(last.date)-fromKey(first.date))/864e5)}:null}; }
+function inbodyVerdict(d){ if(!d) return ''; const g=S.goal.type||'loss'; const m=d.m, f=d.f; if(m==null&&f==null) return '';
+  const sg=v=>v==null?'–':(v>0?'+':'')+v+'kg';
+  let v='';
+  if(g==='loss'){ if(f!=null&&f<=-0.5&&(m==null||m>=-0.3)) v='지방은 빠지고 근육은 지켜지는 이상적인 감량입니다'; else if(f!=null&&f<=-0.5&&m<-0.3) v='지방과 함께 근육도 빠지고 있습니다 — 단백질 섭취와 근력 강도를 올리세요'; else if(f!=null&&f>0.5) v='체지방이 늘었습니다 — 섭취 칼로리를 다시 점검하세요'; else v='변화가 오차 범위(±0.5kg) 안입니다 — 조건을 지키며 몇 주 더 지켜보세요'; }
+  else if(g==='gain'){ if(m!=null&&m>=0.5&&(f==null||f<=0.5)) v='근육은 늘고 지방은 억제된 좋은 증량입니다'; else if(m!=null&&m>=0.5&&f>0.5) v='근육과 지방이 같이 늘고 있습니다 — 잉여 칼로리를 조금 줄이세요'; else if(m!=null&&m<-0.3) v='근육이 줄었습니다 — 섭취량과 근력 볼륨을 늘리세요'; else v='변화가 오차 범위 안입니다 — 근력 중량 추세와 함께 보세요'; }
+  else { v=(Math.abs(m||0)<=0.5&&Math.abs(f||0)<=0.5)?'체성분이 안정적으로 유지되고 있습니다':(f>0.5?'체지방이 늘고 있습니다':'근육이 줄고 있습니다 — 근력 운동을 유지하세요'); }
+  return `근육 ${sg(m)} · 지방 ${sg(f)}${d.p!=null?' · 체지방률 '+(d.p>0?'+':'')+d.p+'%p':''} (${d.days}일) → ${v}`; }
+function renderInbody(){ const box=$('ibAnalysis'); const ib=inbodyDelta(); const lastAny=S.weekly[S.weekly.length-1]; const due=!lastAny||(new Date()-fromKey(lastAny.date))/864e5>=6; $('wDue').textContent=due?'이번 주 측정 필요':'';
+  if(!ib){ box.innerHTML='<b class="t">인바디 변화</b>인바디 값(골격근량·체지방량)을 기록하면 첫 측정·4주 전 대비 변화와 판정이 여기에 표시됩니다.'; return; }
+  const L=ib.last; box.innerHTML=`<b class="t">인바디 변화 <small style="color:var(--muted);font-weight:400">최근 ${L.date}${L.cond==='fast'?' · 공복':L.cond==='pre'?' · 운동 전':''}</small></b>
+    <div class="tiles" style="grid-template-columns:repeat(4,1fr)"><div class="tile"><b class="num">${L.weight??'–'}</b><small>체중 kg</small></div><div class="tile"><b class="num">${L.muscle??'–'}</b><small>골격근 kg</small></div><div class="tile"><b class="num">${L.fatkg??'–'}</b><small>체지방 kg</small></div><div class="tile"><b class="num">${L.fat??'–'}</b><small>체지방률 %</small></div></div>
+    <ul>${ib.d4?`<li><b>4주 전 대비</b> — ${inbodyVerdict(ib.d4)}</li>`:'<li>4주 전 대비 판정은 3주 이상 간격의 측정이 쌓이면 표시됩니다</li>'}${ib.d0?`<li><b>첫 측정 대비</b> (${ib.first.date}) — ${inbodyVerdict(ib.d0)}</li>`:''}<li style="color:var(--muted)">인바디 오차는 ±0.5~1kg입니다. 한 주 변화보다 4주 이상의 흐름으로 판단하세요.</li></ul>`; }
+function renderWeekly(){ renderInbody(); const l=S.weekly.slice(-10).reverse(); $('weeklyList').innerHTML=l.length?l.map(r=>`<div class="num" style="display:grid;grid-template-columns:1fr auto;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${r.date}</b>${r.cond==='other'?' <span class="pill">비교 제외</span>':''}<br><small>${r.weight?r.weight+'kg':'–'} · 허리 ${r.waist?r.waist+'cm':'–'}${r.muscle?' · 근육 '+r.muscle+'kg':''}${r.fatkg?' · 지방 '+r.fatkg+'kg':''}${r.fat?' ('+r.fat+'%)':''}${r.visc?' · 내장 '+r.visc:''} · 통증 ${r.pain??'–'}${r.part?'('+GNAME[r.part]+')':''}</small></span><button class="btn sm danger" data-wdel="${r.date}">삭제</button></div>`).join(''):'아직 기록이 없습니다.';
+  $('weeklyList').querySelectorAll('[data-wdel]').forEach(b=>b.onclick=()=>{ if(confirm(b.dataset.wdel+' 기록을 삭제할까요?')){ S.weekly=S.weekly.filter(x=>x.date!==b.dataset.wdel); save(); renderWeekly(); } }); }
 $('saveKey').onclick=()=>{ API.provider=$('apiProvider').value; API.key=$('apiKey').value.trim(); API.model=$('apiModel').value.trim(); saveApi(); toast(API.key?`${API.provider==='gemini'?'Gemini':'Claude'} 키를 저장했습니다`:'키가 비어 있습니다'); };
 $('testKey').onclick=async()=>{ $('saveKey').click(); if(!API.key) return; $('testKey').disabled=true; $('testKey').textContent='확인 중…'; try{ const r=await callAI([{type:'text',text:'OK 라고 한 단어만 답해줘'}],20); toast(/ok/i.test(r)?'연결 성공: 정상 응답을 받았습니다':'응답: '+r.slice(0,40)); }catch(e){ toast('실패: '+e.message); } $('testKey').disabled=false; $('testKey').textContent='연결 테스트'; };
 $('clearKey').onclick=()=>{ API.key=''; saveApi(); $('apiKey').value=''; toast('키를 삭제했습니다'); };
-$('exportBtn').onclick=async()=>{ const c=clone(S); for(const k in c.food){ c.food[k]=c.food[k].map(i=>Object.assign({},i,{photo:undefined})); } const t=JSON.stringify(c); try{await navigator.clipboard.writeText(t);toast('클립보드에 복사했습니다');}catch(e){prompt('아래 텍스트를 복사하세요',t);} };
+$('exportBtn').onclick=async()=>{ const c=clone(S); for(const k in c.food){ c.food[k]=c.food[k].map(i=>Object.assign({},i,{photo:undefined})); } c.weekly=(c.weekly||[]).map(r=>Object.assign({},r,{photo:undefined})); const t=JSON.stringify(c); try{await navigator.clipboard.writeText(t);toast('클립보드에 복사했습니다');}catch(e){prompt('아래 텍스트를 복사하세요',t);} };
 $('importBtn').onclick=()=>{ const t=prompt('내보내기 텍스트를 붙여넣으세요'); if(!t)return; try{ const o=JSON.parse(t); S=Object.assign({profile:{},goal:{},log:{},food:{},plan:{},weekly:[]},o); save(); loadProfile(); renderWeekly(); renderToday(); toast('가져왔습니다'); }catch(e){ toast('형식이 올바르지 않습니다'); } };
 $('resetBtn').onclick=()=>{ if(confirm('모든 기록과 프로필을 지울까요?')){ S={profile:{sex:'m',activity:1.375},goal:{type:'loss',days:5,auto:1},log:{},food:{},plan:{},weekly:[]}; save(); loadProfile(); renderWeekly(); renderToday(); toast('초기화했습니다'); } };
 
@@ -1250,7 +1308,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.9a';
+const APP_VERSION='0.10';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
