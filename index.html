@@ -179,6 +179,39 @@ h2{margin:0 0 10px;font-size:17px}
 .mchk input{width:18px;height:18px;margin:0}
 .mf{margin-top:6px;grid-template-columns:repeat(3,1fr)}
 
+/* rest timer */
+.timer{margin-top:12px;padding:12px;border-radius:12px;background:var(--panel2);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.timer .clock{font-size:34px;font-weight:900;line-height:1;min-width:92px;text-align:center;font-variant-numeric:tabular-nums}
+.timer .clock.run{color:var(--accent)} .timer .clock.done{color:var(--ok)}
+.timer .tbtns{display:flex;gap:6px;flex-wrap:wrap}
+.timer .tbtns button{padding:7px 10px;border-radius:9px;background:var(--panel);border:1px solid var(--line);font-size:12.5px;font-weight:700}
+.timer .tbtns button.on{border-color:var(--accent);color:var(--accent)}
+.timer small{grid-column:1/-1;color:var(--muted);font-size:12px}
+/* favorites */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chips button{padding:5px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips button.fav{border-color:var(--must);color:var(--must)}
+.chips .lbl{font-size:11px;color:var(--faint);align-self:center;margin-right:2px}
+.fitem{grid-template-columns:auto 1fr auto auto auto}
+.fitem .star{color:var(--faint);padding:4px 4px;font-size:16px}
+.fitem .star.on{color:var(--must)}
+/* trend charts */
+.trend{margin-top:12px}
+.trend h3{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trend h3 select{width:auto;padding:5px 8px;font-size:12.5px;border-radius:8px}
+.chart{position:relative;background:var(--panel2);border-radius:12px;padding:8px 6px 4px;margin-bottom:10px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .tip{position:absolute;pointer-events:none;background:var(--text);color:var(--bg);font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:8px;transform:translate(-50%,-115%);white-space:nowrap;opacity:0}
+.chart .tip.show{opacity:1}
+.chart .empty{font-size:12.5px;color:var(--muted);padding:14px 6px;text-align:center}
+.chart text{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.chart .grid line{stroke:var(--line);stroke-width:1}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ar{fill:var(--accent);opacity:.12}
+.chart .pt{fill:var(--accent);stroke:var(--panel2);stroke-width:2}
+.chart .goal{stroke:var(--ok);stroke-dasharray:4 4;stroke-width:1.5}
+.chart .lastlbl{fill:var(--text);font-weight:700;font-size:11px}
+
 /* calendar */
 .cal{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px}
 .cal .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -252,6 +285,7 @@ h2{margin:0 0 10px;font-size:17px}
       <h2>음식 기록</h2>
       <p class="help">음식 이름을 검색하거나(예: 김치찌개, 닭가슴살) 사진·설명을 붙여 기록합니다. 설정 탭에 AI 키(Gemini 무료 가능)를 저장하면 사진·설명을 AI가 분석해 자동으로 채웁니다.</p>
       <div class="fields">
+        <div class="chips wide" id="favChips" style="grid-column:1/-1"></div>
         <label class="wide search">음식 검색 / 이름<input id="fName" placeholder="예) 제육덮밥, 아메리카노" autocomplete="off"><div class="sugg" id="sugg" hidden></div></label>
         <label>끼니<select id="fMeal"><option>아침</option><option selected>점심</option><option>저녁</option><option>간식</option></select></label>
         <label>수량(배)<input id="fQty" type="number" step="0.5" min="0.25" value="1" inputmode="decimal"></label>
@@ -280,6 +314,12 @@ h2{margin:0 0 10px;font-size:17px}
       <div class="grid" id="calGrid"></div>
       <div class="legend"><span><i style="background:var(--ok)"></i>달성 (80점↑)</span><span><i style="background:var(--warn)"></i>보통 (60~79)</span><span><i style="background:var(--bad)"></i>미흡 / 미실시</span></div>
       <div class="mstat tiles" id="mstat"></div>
+    </div>
+    <div class="cal trend" style="margin-top:12px">
+      <h3>체중 추세 <span class="pill" id="wGoalPill"></span></h3><div class="chart" id="chWeight"></div>
+      <h3>허리둘레 추세</h3><div class="chart" id="chWaist"></div>
+      <h3>주간 평균 점수</h3><div class="chart" id="chScore"></div>
+      <h3>운동 중량 추세 <select id="chExSel"></select></h3><div class="chart" id="chEx"></div>
     </div>
     <p class="help" style="margin-top:8px">날짜를 누르면 그날의 루틴과 기록으로 이동합니다. 점수는 운동+식단 종합 점수입니다.</p>
   </section>
@@ -344,7 +384,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.6</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.7</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -369,7 +409,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.6 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.7 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -866,16 +906,32 @@ function openEditor(id){
   if(e.type==='strength') f=`<label>${e.assist?'보조 중량':'중량'} (kg)<input id="fKg" type="number" step="2.5" inputmode="decimal" value="${r.kg??e.kg}"></label><label>횟수<input id="fReps" type="number" inputmode="numeric" value="${r.reps??e.reps}"></label><label>세트<input id="fSets" type="number" inputmode="numeric" value="${r.sets??e.sets}"></label>`;
   sh.innerHTML=`<div class="box"><h3>${e.name}</h3><div class="plan">계획: ${e.spec}${e.adj?` · <span style="color:var(--opt)">${e.adj}</span>`:''} · 실제 수행한 값으로 고쳐서 완료하세요</div>
     <div class="fields">${f}</div><div class="est">예상 소모 <b class="num" id="est">–</b> kcal</div>
+    ${e.type!=='cardio'?`<div class="timer"><div class="clock num" id="tClock">${fmtT(REST.dur)}</div><div class="tbtns"><button id="t60" data-d="60">60초</button><button id="t90" data-d="90">90초</button><button id="t120" data-d="120">120초</button><button id="tStart">▶ 시작</button><button id="tReset">↺</button></div><small id="tInfo">세트 끝나면 「시작」 — 끝나면 진동·알림음</small></div>`:''}
     <div class="acts">${r.done?'<button class="btn danger" id="undo">완료 취소</button>':''}<button class="btn" id="cancel">닫기</button><button class="btn pri" id="ok">${r.done?'수정 저장':'완료 처리'}</button></div></div>`;
   document.body.appendChild(sh);
   const read=()=>{const o={}; if($('fMin'))o.min=+$('fMin').value; if($('fSec'))o.sec=+$('fSec').value; if($('fKg'))o.kg=+$('fKg').value; if($('fReps'))o.reps=+$('fReps').value; if($('fSets'))o.sets=+$('fSets').value; return o;};
   const est=()=>{$('est').textContent=weight()?Math.round(kcalFor(e,read())):'–';};
   sh.querySelectorAll('input').forEach(i=>i.oninput=est); est();
-  const close=()=>sh.remove(); sh.onclick=ev=>{if(ev.target===sh)close();}; $('cancel').onclick=close;
+  if(e.type!=='cardio') bindTimer(sh);
+  const close=()=>{ stopTimer(); sh.remove(); }; sh.onclick=ev=>{if(ev.target===sh)close();}; $('cancel').onclick=close;
   $('ok').onclick=()=>{ freezePlan(k); S.log[k]=S.log[k]||{}; S.log[k][id]=Object.assign({},read(),{done:true,name:e.name,g:e.g,g2:e.g2,at:Date.now()}); save(); close(); renderToday(); const st=dayStats(k); toast(st.hit?'🎯 오늘 운동 목표 달성!':'완료 처리했습니다'); };
   if($('undo')) $('undo').onclick=()=>{toggleDone(k,e,false); close(); renderToday();};
 }
 function toggleDone(k,e,on){ S.log[k]=S.log[k]||{}; if(on){ freezePlan(k); S.log[k][e.id]={done:true,name:e.name,g:e.g,at:Date.now()}; } else delete S.log[k][e.id]; save(); }
+
+/* ============ 휴식 타이머 ============ */
+const REST={dur:60,left:0,iv:null,setsDone:0,ex:null};
+const fmtT=s=>`${Math.floor(s/60)}:${pad(s%60)}`;
+function beep(){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)(); [0,0.18,0.36].forEach(t0=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(0.0001,ac.currentTime+t0); g.gain.exponentialRampToValueAtTime(0.4,ac.currentTime+t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t0+0.15); o.start(ac.currentTime+t0); o.stop(ac.currentTime+t0+0.16); }); }catch(e){} try{ navigator.vibrate&&navigator.vibrate([200,100,200,100,400]); }catch(e){} }
+function stopTimer(){ if(REST.iv){ clearInterval(REST.iv); REST.iv=null; } }
+function bindTimer(sh){
+  const clock=$('tClock'), info=$('tInfo'); const bs=[...sh.querySelectorAll('.tbtns button[data-d]')];
+  const paint=()=>{ bs.forEach(b=>b.classList.toggle('on',+b.dataset.d===REST.dur)); clock.textContent=fmtT(REST.iv?REST.left:REST.dur); clock.className='clock num'+(REST.iv?' run':''); $('tStart').textContent=REST.iv?'⏸ 일시정지':'▶ 시작'; };
+  bs.forEach(b=>b.onclick=()=>{ REST.dur=+b.dataset.d; if(!REST.iv) REST.left=REST.dur; paint(); });
+  $('tStart').onclick=()=>{ if(REST.iv){ stopTimer(); paint(); return; } if(!REST.left) REST.left=REST.dur; REST.iv=setInterval(()=>{ REST.left--; clock.textContent=fmtT(Math.max(0,REST.left)); if(REST.left<=0){ stopTimer(); REST.setsDone++; clock.className='clock num done'; clock.textContent='GO!'; info.textContent=`휴식 끝 — 다음 세트 (${REST.setsDone}회 휴식)`; beep(); REST.left=0; $('tStart').textContent='▶ 시작'; } },1000); paint(); };
+  $('tReset').onclick=()=>{ stopTimer(); REST.left=REST.dur; REST.setsDone=0; info.textContent='세트 끝나면 「시작」 — 끝나면 진동·알림음'; paint(); };
+  REST.left=REST.dur; REST.setsDone=0; paint();
+}
 
 /* ============ 식단 · 평가 ============ */
 let fPhotoData=null, fSel=null;
@@ -895,8 +951,10 @@ function renderFood(){
     <div class="acts"><button class="btn sm" id="aiEval">✨ AI 총평 받기</button></div><div class="aiout" id="aiEvalOut">${(S.ai&&S.ai[k])||''}</div></div>`;
   $('aiEval').onclick=aiEvaluate;
   const items=S.food[k]||[]; const meals=['아침','점심','저녁','간식'];
-  $('foodList').innerHTML=`<h2>오늘 먹은 음식 <span class="pill">${items.length}건 · ${Math.round(fd.kcal)} kcal</span></h2>`+(items.length?meals.map(mn=>{const l=items.filter(i=>i.meal===mn); if(!l.length) return ''; return `<div class="meal"><h4><span>${mn}</span><span class="num">${Math.round(l.reduce((a,i)=>a+i.kcal,0))} kcal</span></h4>${l.map(i=>`<div class="fitem ${JUNK.has(i.cat)?'junk':''}">${i.photo?`<img src="${i.photo}" alt="">`:'<span class="ph">🍽</span>'}<span class="nm">${i.name}${i.qty!==1?` ×${i.qty}`:''}<small class="num">단백질 ${Math.round(i.p)}g · 탄수 ${Math.round(i.c)}g · 지방 ${Math.round(i.f)}g${i.note?' · '+i.note:''}</small></span><span class="kc num">${Math.round(i.kcal)}</span><button class="del" data-id="${i.id}" aria-label="삭제">✕</button></div>`).join('')}</div>`;}).join(''):'<p class="help" style="margin:0">아직 기록이 없습니다. 위에서 음식을 검색해 추가하세요.</p>');
+  $('foodList').innerHTML=`<h2>오늘 먹은 음식 <span class="pill">${items.length}건 · ${Math.round(fd.kcal)} kcal</span></h2>`+(items.length?meals.map(mn=>{const l=items.filter(i=>i.meal===mn); if(!l.length) return ''; return `<div class="meal"><h4><span>${mn}</span><span class="num">${Math.round(l.reduce((a,i)=>a+i.kcal,0))} kcal</span></h4>${l.map(i=>`<div class="fitem ${JUNK.has(i.cat)?'junk':''}">${i.photo?`<img src="${i.photo}" alt="">`:'<span class="ph">🍽</span>'}<span class="nm">${i.name}${i.qty!==1?` ×${i.qty}`:''}<small class="num">단백질 ${Math.round(i.p)}g · 탄수 ${Math.round(i.c)}g · 지방 ${Math.round(i.f)}g${i.note?' · '+i.note:''}</small></span><span class="kc num">${Math.round(i.kcal)}</span><button class="star ${isFav(i.name)?'on':''}" data-n="${i.id}" aria-label="즐겨찾기">${isFav(i.name)?'★':'☆'}</button><button class="del" data-id="${i.id}" aria-label="삭제">✕</button></div>`).join('')}</div>`;}).join(''):'<p class="help" style="margin:0">아직 기록이 없습니다. 위에서 음식을 검색해 추가하세요.</p>');
   $('foodList').querySelectorAll('.del').forEach(b=>b.onclick=()=>{ S.food[k]=(S.food[k]||[]).filter(i=>i.id!==b.dataset.id); save(); renderFood(); });
+  $('foodList').querySelectorAll('.star').forEach(b=>b.onclick=()=>{ const it=(S.food[k]||[]).find(i=>i.id===b.dataset.n); if(it) toggleFav(it); renderFood(); });
+  renderFavChips();
 }
 /* 검색 자동완성 */
 $('fName').addEventListener('input',()=>{ fSel=null; const q=$('fName').value.trim().toLowerCase(); const box=$('sugg'); if(!q){box.hidden=true;return;}
@@ -904,6 +962,13 @@ $('fName').addEventListener('input',()=>{ fSel=null; const q=$('fName').value.tr
   box.innerHTML=hits.map((f,i)=>`<button type="button" data-i="${FOODS.indexOf(f)}"><span>${f[0]}</span><small class="num">${f[1]} kcal · ${f[5]}</small></button>`).join('')||'<button type="button" disabled><small>DB에 없음 — 값을 직접 입력하거나 AI 분석을 쓰세요</small></button>';
   box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>pickFood(FOODS[+b.dataset.i])); });
 document.addEventListener('click',e=>{ if(!e.target.closest('.search')) $('sugg').hidden=true; });
+/* 즐겨찾기 · 최근 음식 */
+const isFav=n=>(S.fav||[]).some(f=>f.name===n);
+function toggleFav(it){ S.fav=S.fav||[]; if(isFav(it.name)){ S.fav=S.fav.filter(f=>f.name!==it.name); toast('즐겨찾기에서 뺐습니다'); } else { S.fav.push({name:it.name,kcal:it.kcal/(it.qty||1),p:it.p/(it.qty||1),c:it.c/(it.qty||1),f:it.f/(it.qty||1),cat:it.cat,meal:it.meal}); toast('즐겨찾기에 넣었습니다'); } save(); }
+function recentFoods(){ const seen=new Set(), out=[]; Object.keys(S.food).sort().reverse().forEach(d=>{ (S.food[d]||[]).slice().reverse().forEach(i=>{ if(seen.has(i.name)||isFav(i.name)) return; seen.add(i.name); out.push({name:i.name,kcal:i.kcal/(i.qty||1),p:i.p/(i.qty||1),c:i.c/(i.qty||1),f:i.f/(i.qty||1),cat:i.cat,meal:i.meal}); }); }); return out.slice(0,8); }
+function renderFavChips(){ const box=$('favChips'); const fav=S.fav||[], rec=recentFoods(); if(!fav.length&&!rec.length){ box.innerHTML='<span class="lbl">기록한 음식은 여기에 「최근」으로, ★를 누르면 「즐겨찾기」로 나타납니다</span>'; return; }
+  box.innerHTML=(fav.length?'<span class="lbl">★</span>'+fav.map((f,i)=>`<button type="button" class="fav" data-t="fav" data-i="${i}">${f.name}</button>`).join(''):'')+(rec.length?'<span class="lbl">최근</span>'+rec.map((f,i)=>`<button type="button" data-t="rec" data-i="${i}">${f.name}</button>`).join(''):'');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const f=(b.dataset.t==='fav'?fav:rec)[+b.dataset.i]; pickFood([f.name,f.kcal,f.p,f.c,f.f,'1회',f.cat||'etc']); if(f.meal) $('fMeal').value=f.meal; toast(`${f.name} 불러옴 — 수량 확인 후 기록 추가`); }); }
 function pickFood(f){ fSel=f; $('fName').value=f[0]; $('sugg').hidden=true; applyQty(); }
 function applyQty(){ if(!fSel) return; const q=Number($('fQty').value)||1; $('fKcal').value=Math.round(fSel[1]*q); $('fP').value=Math.round(fSel[2]*q*10)/10; $('fC').value=Math.round(fSel[3]*q*10)/10; $('fF').value=Math.round(fSel[4]*q*10)/10; }
 $('fQty').addEventListener('input',applyQty);
@@ -993,10 +1058,52 @@ function renderCal(){
     html+=`<button class="cell ${cls} ${k===today?'today':''} ${k===key(cur)?'sel':''}" data-k="${k}"><span class="d num">${d}</span><span class="k num">${has?ev.score:''}</span></button>`; }
   $('calGrid').innerHTML=html;
   $('calGrid').querySelectorAll('.cell[data-k]').forEach(b=>b.onclick=()=>{cur=fromKey(b.dataset.k);showView('today');});
+  renderTrends();
   $('mstat').innerHTML=`<div class="tile"><b class="num">${hit}</b><small>달성일</small></div><div class="tile"><b class="num">${mid}</b><small>보통</small></div><div class="tile"><b class="num">${n?Math.round(sum/n):'–'}</b><small>평균 점수</small></div><div class="tile"><b class="num">${weight()?Math.round(kcal).toLocaleString():'–'}</b><small>월 소모 kcal</small></div>`;
 }
 $('prevM').onclick=()=>{calMonth.setMonth(calMonth.getMonth()-1);renderCal();};
 $('nextM').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);renderCal();};
+
+/* ============ 추세 그래프 (단일 계열 선 그래프, SVG) ============ */
+function lineChart(el, pts, o={}){ // pts: [{x:'YYYY-MM-DD', y:number}]
+  el.innerHTML=''; if(pts.length<2){ el.innerHTML=`<div class="empty">${pts.length?'기록이 1개뿐입니다 — 2개부터 선이 그려집니다':'아직 기록이 없습니다'}</div>`; return; }
+  const W=360,H=150,L=34,R=14,T=14,B=24, w=W-L-R, h=H-T-B;
+  const xs=pts.map(p=>fromKey(p.x).getTime()), ys=pts.map(p=>p.y);
+  let lo=Math.min(...ys,o.goal??Infinity), hi=Math.max(...ys,o.goal??-Infinity); if(hi===lo){hi+=1;lo-=1;} const padY=(hi-lo)*0.15; lo-=padY; hi+=padY; if(o.min!=null) lo=Math.max(o.min,lo); if(o.max!=null) hi=Math.min(o.max,hi); if(o.fixed){ lo=o.fixed[0]; hi=o.fixed[1]; }
+  const x0=xs[0], x1=xs[xs.length-1]||x0+1; const X=v=>L+(x1===x0?w/2:(v-x0)/(x1-x0)*w), Y=v=>T+h-(v-lo)/(hi-lo)*h;
+  const ticks=4, grid=[...Array(ticks+1)].map((_,i)=>lo+(hi-lo)*i/ticks);
+  const d=pts.map((p,i)=>`${i?'L':'M'}${X(xs[i]).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ');
+  const area=`${d} L${X(x1).toFixed(1)},${(T+h).toFixed(1)} L${X(x0).toFixed(1)},${(T+h).toFixed(1)} Z`;
+  const fmt=v=>o.unit==='점'?Math.round(v):(Math.round(v*10)/10);
+  const dl=k=>{const dt=fromKey(k);return `${dt.getMonth()+1}/${dt.getDate()}`;};
+  const xl=[0,Math.floor((pts.length-1)/2),pts.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  const last=pts[pts.length-1];
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.label||''}">
+    <g class="grid">${grid.map(g=>`<line x1="${L}" x2="${W-R}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}"/>`).join('')}</g>
+    ${grid.map(g=>`<text x="${L-4}" y="${(Y(g)+3.5).toFixed(1)}" text-anchor="end">${fmt(g)}</text>`).join('')}
+    ${o.goal!=null?`<line class="goal" x1="${L}" x2="${W-R}" y1="${Y(o.goal).toFixed(1)}" y2="${Y(o.goal).toFixed(1)}"/><text x="${W-R}" y="${(Y(o.goal)-3).toFixed(1)}" text-anchor="end" style="fill:var(--ok)">목표 ${fmt(o.goal)}</text>`:''}
+    <path class="ar" d="${area}"/><path class="ln" d="${d}"/>
+    ${pts.map((p,i)=>`<circle class="pt" cx="${X(xs[i]).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="4"/>`).join('')}
+    ${xl.map(i=>`<text x="${X(xs[i]).toFixed(1)}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${dl(pts[i].x)}</text>`).join('')}
+    <text class="lastlbl" x="${X(x1).toFixed(1)}" y="${(Y(last.y)-9).toFixed(1)}" text-anchor="end">${fmt(last.y)}${o.unit||''}</text>
+  </svg><div class="tip" id="tip"></div>`;
+  const svg=el.querySelector('svg'), tip=el.querySelector('.tip');
+  const show=ev=>{ const r=svg.getBoundingClientRect(); const mx=(ev.clientX-r.left)/r.width*W; let bi=0,bd=1e9; xs.forEach((x,i)=>{const dd=Math.abs(X(x)-mx); if(dd<bd){bd=dd;bi=i;}}); const p=pts[bi]; tip.textContent=`${p.x.slice(5).replace('-','/')} · ${fmt(p.y)}${o.unit||''}${p.extra?' · '+p.extra:''}`; tip.style.left=(X(xs[bi])/W*r.width)+'px'; tip.style.top=(Y(p.y)/H*r.height)+'px'; tip.classList.add('show'); };
+  svg.addEventListener('pointermove',show); svg.addEventListener('pointerdown',show); svg.addEventListener('pointerleave',()=>tip.classList.remove('show'));
+}
+function weekKey(k){ const d=fromKey(k); d.setDate(d.getDate()-d.getDay()); return key(d); }
+function renderTrends(){
+  const wk=S.weekly.filter(r=>r.weight).map(r=>({x:r.date,y:r.weight})); const m=metrics();
+  $('wGoalPill').textContent=S.goal.weight?`목표 ${S.goal.weight}kg`:''; lineChart($('chWeight'),wk,{unit:'kg',goal:S.goal.weight?Number(S.goal.weight):null,label:'체중'});
+  lineChart($('chWaist'),S.weekly.filter(r=>r.waist).map(r=>({x:r.date,y:r.waist})),{unit:'cm',label:'허리둘레'});
+  const wkScores={}; const today=key(new Date()); Object.keys(S.log).concat(Object.keys(S.food)).filter((v,i,a)=>a.indexOf(v)===i&&v<=today).forEach(k=>{ const st=dayStats(k), fd=foodStats(k); if(!(st.any||fd.n)) return; const ev=evaluate(k); const wkk=weekKey(k); (wkScores[wkk]=wkScores[wkk]||[]).push(ev.score); });
+  const sc=Object.keys(wkScores).sort().slice(-12).map(k=>({x:k,y:wkScores[k].reduce((a,b)=>a+b,0)/wkScores[k].length,extra:`${wkScores[k].length}일 기록`}));
+  lineChart($('chScore'),sc,{unit:'점',fixed:[0,100],label:'주간 평균 점수'});
+  // 운동별 중량
+  const names=[...new Set(EXALL.filter(e=>e.type==='strength'&&!e.assist&&e.kg>0).map(e=>e.name))]; const sel=$('chExSel'); const cur=sel.value||names[0]; sel.innerHTML=names.map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join(''); sel.onchange=()=>renderTrends();
+  const pts=[]; Object.keys(S.log).sort().forEach(k=>{ let best=null; Object.values(S.log[k]).forEach(r=>{ if(r.done&&r.name===sel.value&&r.kg!=null&&(!best||r.kg>best.kg)) best=r; }); if(best) pts.push({x:k,y:Number(best.kg),extra:`${best.reps??'-'}회×${best.sets??'-'}세트`}); });
+  lineChart($('chEx'),pts.slice(-20),{unit:'kg',label:sel.value});
+}
 
 /* ============ 프로필 · 목표 ============ */
 const PF=['name','sex','age','height','weight','fat','muscle','waist','activity'];
@@ -1074,7 +1181,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.6';
+const APP_VERSION='0.7';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
