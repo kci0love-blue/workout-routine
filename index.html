@@ -189,6 +189,12 @@ h2{margin:0 0 10px;font-size:17px}
 .timer small{grid-column:1/-1;color:var(--muted);font-size:12px}
 .src{font-size:11.5px;color:var(--muted);min-height:16px;display:block}
 .src.ai{color:var(--opt)} .src.db{color:var(--ok)} .src.miss{color:var(--warn)}
+.chips.supp button{padding:8px 12px;font-size:13.5px;border-radius:12px;display:grid;justify-items:start;gap:1px;white-space:normal;text-align:left}
+.chips.supp button small{font-size:11px;color:var(--muted)}
+.chips.supp button.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--panel));}
+.chips.supp button.on small{color:var(--ok)}
+.srow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.srow small{display:block;color:var(--muted);font-size:11.5px}
 /* favorites */
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .chips button{padding:5px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -283,6 +289,12 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 식단 · 평가 ===== -->
   <section id="viewFood" hidden>
     <div class="card" id="evalCard"></div>
+    <div class="card" id="suppCard">
+      <h2>오늘 영양제 <span class="pill" id="suppPill"></span></h2>
+      <p class="help">눌러서 섭취 체크. 크레아틴은 로딩 없이 매일 3~5g을 꾸준히 먹는 게 핵심이라 쉬는 날에도 체크하세요.</p>
+      <div class="chips supp" id="suppChips"></div>
+      <div class="acts" style="margin-top:8px"><button class="btn sm" id="suppManage">영양제 관리</button></div>
+    </div>
     <div class="card">
       <h2>음식 기록</h2>
       <p class="help">이름을 입력하면 내장 DB·내 음식·즐겨찾기에서 찾아 영양소를 자동으로 채우고, 없으면 AI 키가 있을 때 AI가 분석해 채웁니다(설정 탭에서 Gemini 무료 키 등록). 한 번 기록한 음식은 「내 음식」으로 학습되어 다음부터 즉시 채워집니다.</p>
@@ -386,7 +398,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.8</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.9</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -411,7 +423,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.8 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.9 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -845,10 +857,30 @@ function evaluate(k){
   r.parts.push(['식단 균형',Math.round(bS),15]);
   r.score=r.parts.reduce((a,p)=>a+p[1],0);
   r.net=Math.round(fd.kcal-(m.tdee+st.kcal));
+  const sp=suppStats(k); r.supp=sp; if(sp.total&&sp.missed.length&&(k<=key(new Date()))) r.msgs.push(`영양제 미섭취: ${sp.missed.map(s=>s.name).join(', ')}${sp.missed.some(s=>/크레아틴/.test(s.name))?' — 크레아틴은 매일 일정하게 먹어야 근육 내 농도가 유지됩니다':''}`);
   if(r.score>=80&&!r.msgs.length) r.msgs.push('운동과 식단 모두 계획대로였습니다. 이 페이스를 유지하세요.');
   return r;
 }
 const grade=s=>s>=80?['달성','ok']:s>=60?['보통','warn']:['미흡','bad'];
+/* ---------- 영양제 ---------- */
+const SUPP_PRESETS=[['크레아틴','5g','운동 후·매일'],['단백질 보충제','1스쿱','운동 후'],['종합비타민','1정','아침 식후'],['오메가3','1캡슐','저녁 식후'],['비타민D','1정','아침'],['마그네슘','1정','취침 전'],['유산균','1캡슐','아침 공복'],['아르기닌','3g','운동 전'],['BCAA','5g','운동 중']];
+if(!S.suppList) S.suppList=[{id:'s1',name:'크레아틴',dose:'5g',when:'운동 후·매일'}];
+function suppStats(k){ const taken=(S.supp&&S.supp[k])||{}; const list=S.suppList||[]; const done=list.filter(s=>taken[s.id]); return {total:list.length,done,missed:list.filter(s=>!taken[s.id])}; }
+function renderSupp(){ const k=key(cur), sp=suppStats(k), taken=(S.supp&&S.supp[k])||{}; $('suppPill').textContent=sp.total?`${sp.done.length}/${sp.total}`:'';
+  $('suppChips').innerHTML=(S.suppList||[]).map(s=>`<button type="button" class="${taken[s.id]?'on':''}" data-id="${s.id}">${taken[s.id]?'✓ ':''}${s.name} ${s.dose||''}<small>${s.when||''}</small></button>`).join('')||'<span class="lbl">「영양제 관리」에서 먹는 영양제를 등록하세요</span>';
+  $('suppChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.supp=S.supp||{}; S.supp[k]=S.supp[k]||{}; if(S.supp[k][b.dataset.id]) delete S.supp[k][b.dataset.id]; else S.supp[k][b.dataset.id]=Date.now(); save(); renderFood(); }); }
+function openSuppManage(){ const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet';
+  const draw=()=>{ sh.innerHTML=`<div class="box"><h3>영양제 관리</h3><div class="plan">매일 먹는 영양제를 등록하면 식단 탭에서 체크할 수 있고 AI 총평에도 반영됩니다.</div>
+    <div id="sList">${(S.suppList||[]).map(s=>`<div class="srow"><div><b>${s.name}</b> ${s.dose||''}<small>${s.when||''}</small></div><button class="btn sm danger" data-del="${s.id}">삭제</button></div>`).join('')||'<p class="help">등록된 영양제가 없습니다.</p>'}</div>
+    <div class="chips" style="margin-top:10px"><span class="lbl">빠른 추가</span>${SUPP_PRESETS.filter(p=>!(S.suppList||[]).some(s=>s.name===p[0])).map(p=>`<button type="button" data-p="${p[0]}">${p[0]}</button>`).join('')}</div>
+    <div class="fields" style="margin-top:8px"><label>이름<input id="sName" placeholder="예) 크레아틴"></label><label>용량<input id="sDose" placeholder="예) 5g, 1정"></label><label>복용 시점<input id="sWhen" placeholder="예) 운동 후"></label></div>
+    <div class="acts"><button class="btn" id="sClose">닫기</button><button class="btn pri" id="sAdd">추가</button></div></div>`;
+    sh.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ S.suppList=S.suppList.filter(s=>s.id!==b.dataset.del); save(); draw(); });
+    sh.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ const p=SUPP_PRESETS.find(x=>x[0]===b.dataset.p); if(!p||S.suppList.some(s=>s.name===p[0])) return; S.suppList.push({id:'s'+Date.now(),name:p[0],dose:p[1],when:p[2]}); save(); draw(); });
+    $('sAdd').onclick=()=>{ const n=$('sName').value.trim(); if(!n){ toast('이름을 입력하세요'); return; } S.suppList.push({id:'s'+Date.now(),name:n,dose:$('sDose').value.trim(),when:$('sWhen').value.trim()}); save(); draw(); };
+    $('sClose').onclick=()=>{ sh.remove(); renderFood(); }; };
+  document.body.appendChild(sh); draw(); sh.onclick=ev=>{ if(ev.target===sh){ sh.remove(); renderFood(); } }; }
+$('suppManage').onclick=openSuppManage;
 
 /* ============ 렌더: 오늘 ============ */
 function setAccent(c){ document.documentElement.style.setProperty('--accent',c); }
@@ -949,9 +981,11 @@ function renderFood(){
       <div class="tile"><b class="num">${Math.round(st.kcal)}</b><small>운동 소모 kcal</small></div>
       <div class="tile"><b class="num">${ev.net!=null?(ev.net>0?'+':'')+ev.net:'–'}</b><small>순 에너지 (섭취−소비)</small></div></div>
     <div class="verdict"><b>목표 달성 판정: <span class="pill ${gr[1]}">${gr[0]}</span> ${ev.ready?(S.goal.type==='loss'?(ev.net<=-300?'— 감량 방향으로 잘 가고 있습니다':ev.net<0?'— 소폭 적자, 조금 더 줄이면 좋습니다':'— 오늘은 섭취가 소비보다 많습니다'):S.goal.type==='gain'?(ev.net>=100?'— 증량에 필요한 잉여 확보':'— 근육 증가에는 섭취가 부족합니다'):(Math.abs(ev.net)<=250?'— 균형 잘 유지 중':'— 유지 범위를 벗어났습니다')):''}</b>
+    ${ev.supp&&ev.supp.total?`<div style="font-size:12.5px;margin-top:4px">영양제 <b class="num">${ev.supp.done.length}/${ev.supp.total}</b>${ev.supp.done.length?' · '+ev.supp.done.map(s=>s.name).join(', '):''}</div>`:''}
     <ul>${ev.msgs.map(x=>`<li>${x}</li>`).join('')}</ul>
     <div class="acts"><button class="btn sm" id="aiEval">✨ AI 총평 받기</button></div><div class="aiout" id="aiEvalOut">${(S.ai&&S.ai[k])||''}</div></div>`;
   $('aiEval').onclick=aiEvaluate;
+  renderSupp();
   const items=S.food[k]||[]; const meals=['아침','점심','저녁','간식'];
   $('foodList').innerHTML=`<h2>오늘 먹은 음식 <span class="pill">${items.length}건 · ${Math.round(fd.kcal)} kcal</span></h2>`+(items.length?meals.map(mn=>{const l=items.filter(i=>i.meal===mn); if(!l.length) return ''; return `<div class="meal"><h4><span>${mn}</span><span class="num">${Math.round(l.reduce((a,i)=>a+i.kcal,0))} kcal</span></h4>${l.map(i=>`<div class="fitem ${JUNK.has(i.cat)?'junk':''}">${i.photo?`<img src="${i.photo}" alt="">`:'<span class="ph">🍽</span>'}<span class="nm">${i.name}${i.qty!==1?` ×${i.qty}`:''}<small class="num">단백질 ${Math.round(i.p)}g · 탄수 ${Math.round(i.c)}g · 지방 ${Math.round(i.f)}g${i.note?' · '+i.note:''}</small></span><span class="kc num">${Math.round(i.kcal)}</span><button class="star ${isFav(i.name)?'on':''}" data-n="${i.id}" aria-label="즐겨찾기">${isFav(i.name)?'★':'☆'}</button><button class="del" data-id="${i.id}" aria-label="삭제">✕</button></div>`).join('')}</div>`;}).join(''):'<p class="help" style="margin:0">아직 기록이 없습니다. 위에서 음식을 검색해 추가하세요.</p>');
   $('foodList').querySelectorAll('.del').forEach(b=>b.onclick=()=>{ S.food[k]=(S.food[k]||[]).filter(i=>i.id!==b.dataset.id); save(); renderFood(); });
@@ -1067,10 +1101,11 @@ async function aiEvaluate(){
   try{
     const items=(S.food[k]||[]).map(i=>`${i.meal} ${i.name}${i.qty!==1?'×'+i.qty:''} ${Math.round(i.kcal)}kcal`).join(', ')||'기록 없음';
     const ex=st.done.map(e=>`${e.name}(${actualSpec(e,S.log[k][e.id])})`).join(', ')||'기록 없음';
-    const txt=await callAI([{type:'text',text:`당신은 퍼스널 트레이너 겸 영양 코치입니다. 아래 하루 데이터를 보고 한국어로 5문장 이내의 총평을 써주세요. 잘한 점 1개, 개선점 2개, 내일 한 가지 실천 제안. 과장 없이 구체적으로.
+    const txt=await callAI([{type:'text',text:`당신은 퍼스널 트레이너 겸 영양 코치입니다. 아래 하루 데이터를 보고 한국어로 5문장 이내의 총평을 써주세요. 잘한 점 1개, 개선점 2개, 내일 한 가지 실천 제안. 영양제(특히 크레아틴)의 섭취 여부·타이밍도 한 줄 언급. 과장 없이 구체적으로.
 프로필: ${m.w}kg, 키 ${m.h}cm, ${m.age}세, 목표 ${({loss:'체지방 감량',maintain:'유지',gain:'근육 증가'})[S.goal.type]}, 목표 칼로리 ${m.target}kcal, 단백질 목표 ${m.protein}g
 운동: ${ex} (소모 약 ${Math.round(st.kcal)}kcal, 필수 ${st.mustDone.length}/${st.must.length})
 식단: ${items} (합계 ${Math.round(fd.kcal)}kcal, 단백질 ${Math.round(fd.p)}g, 탄수 ${Math.round(fd.c)}g, 지방 ${Math.round(fd.f)}g)
+영양제: ${(S.suppList||[]).length?`등록 ${(S.suppList||[]).map(s=>s.name+(s.dose?' '+s.dose:'')+(s.when?'('+s.when+')':'')).join(', ')} / 오늘 섭취 ${ev.supp.done.map(s=>s.name).join(', ')||'없음'} / 미섭취 ${ev.supp.missed.map(s=>s.name).join(', ')||'없음'}`:'등록 없음'}
 규칙 기반 점수: ${ev.score}/100 (${ev.parts.map(p=>p[0]+' '+p[1]+'/'+p[2]).join(', ')})`}],500);
     out.textContent=txt.trim(); S.ai=S.ai||{}; S.ai[k]=txt.trim(); save();
   }catch(e){ out.textContent='실패: '+e.message; }
@@ -1213,7 +1248,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.8';
+const APP_VERSION='0.9';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
