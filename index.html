@@ -425,7 +425,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.11</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.12</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -450,7 +450,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.11 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.12 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -734,13 +734,21 @@ function kcalFor(ex, rec){
 /* ============ 맨몸 운동 (스트레칭·회복 항목에 추가) ============ */
 /* [이름, type(time|reps), 기본 세트, 기본 초/회, MET, 부위, 비고] */
 const BW=[
-['플랭크','time',3,60,3.0,'core','팔꿈치·발끝, 허리 일자'],['사이드 플랭크 (좌·우)','time',3,30,3.0,'core','좌우 각 30초 = 1세트'],['버드독','reps',3,15,2.8,'core','좌우 교대 15회'],['데드버그','reps',3,15,2.8,'core','허리 바닥에 붙이기'],
+['맥길 컬업 (McGill Curl-up)','reps',3,8,2.5,'core','한쪽 무릎 세우고 손은 허리 밑, 머리·어깨만 살짝 들어 8~10초 유지 = 1회'],['플랭크','time',3,60,3.0,'core','팔꿈치·발끝, 허리 일자'],['사이드 플랭크 (좌·우)','time',3,30,3.0,'core','좌우 각 30초 = 1세트'],['버드독','reps',3,15,2.8,'core','좌우 교대 15회'],['데드버그','reps',3,15,2.8,'core','허리 바닥에 붙이기'],
 ['글루트 브릿지','reps',3,15,3.0,'legs','엉덩이 꽉 조이기'],['힙 힌지 (맨몸)','reps',3,12,2.5,'back','데드리프트 준비 동작'],['맨몸 스쿼트','reps',3,15,4.0,'legs',''],['런지 (좌·우)','reps',3,10,4.0,'legs','좌우 각 10회'],['월 싯','time',3,30,3.5,'legs','벽에 기대 앉기'],['카프 레이즈','reps',3,20,2.5,'legs',''],
 ['푸시업','reps',3,10,3.8,'chest','무릎 대고 가능'],['인클라인 푸시업','reps',3,12,3.0,'chest','벤치·벽 짚고'],['슈퍼맨','reps',3,12,2.8,'back','팔다리 동시에 들기'],['Y-T-W 레이즈','reps',2,10,2.5,'back','어깨 안정화'],
 ['마운틴 클라이머','time',3,30,6.0,'core','유산소성'],['버피','reps',3,8,8.0,'cardio','고강도'],['점핑잭','time',3,45,6.0,'cardio',''],['하이 니','time',3,30,6.0,'cardio',''],
 ['캣카우','reps',2,10,2.0,'core','척추 가동성'],['힙 플렉서 스트레칭 (좌·우)','time',2,30,2.0,'legs','좌우 각 30초'],['햄스트링 스트레칭 (좌·우)','time',2,30,2.0,'legs',''],['흉추 회전 (좌·우)','reps',2,10,2.0,'back',''],['폼롤러 (등·다리)','time',1,300,2.3,'legs','5분'],['워킹 (제자리·산책)','time',1,600,3.3,'cardio','10분']
 ];
 const BWBY={}; BW.forEach(b=>BWBY[b[0]]=b);
+const bwAll=()=>((S.userBW||[]).map(b=>b.concat(['my']))).concat(BW);
+/* AI로 모르는 맨몸 운동 찾기 → 정의 생성 후 「내 운동」에 학습 */
+async function aiBwLookup(q){
+  const txt=await callAI([{type:'text',text:`"${q}"이(가) 어떤 운동인지 판단해 JSON만 출력해줘. 맨몸·코어·스트레칭·유산소 운동이면: {"name":"정확한 한국어 명칭(영문 병기 가능)","type":"time 또는 reps","sets":기본 세트수,"value":time이면 1세트 초, reps면 1세트 횟수,"met":대사당량 숫자(스트레칭 2~2.5, 코어 안정화 2.5~3, 맨몸 근력 3.5~4.5, 고강도 유산소 6~8),"group":"core|legs|chest|back|arms|cardio","note":"자세 요점 한 줄(40자 이내)"}. 운동이 아니거나 모르면 {"name":null}`}],250);
+  const js=JSON.parse(txt.slice(txt.indexOf('{'),txt.lastIndexOf('}')+1)); if(!js.name) return null;
+  const type=js.type==='time'?'time':'reps'; const def=[js.name,type,Math.max(1,Math.min(6,+js.sets||3)),Math.max(1,+js.value||(type==='time'?30:12)),Math.max(1.5,Math.min(9,+js.met||3)),['core','legs','chest','back','arms','cardio'].includes(js.group)?js.group:'core',String(js.note||'').slice(0,60)];
+  S.userBW=(S.userBW||[]).filter(b=>norm(b[0])!==norm(def[0])); S.userBW.push(def); if(S.userBW.length>200) S.userBW=S.userBW.slice(-200); save(); return def;
+}
 function bwMinutes(items){ return (items||[]).reduce((a,i)=>a+(i.type==='time'?i.sets*i.sec:i.sets*i.reps*3)/60,0); }
 function bwKcal(items){ const w=weight(); if(!w) return 0; return (items||[]).reduce((a,i)=>{ const work=i.type==='time'?i.sets*i.sec:i.sets*i.reps*3; return a+i.met*w*(work/3600)+2.5*w*(Math.max(0,i.sets-1)*30/3600); },0); }
 function bwSpec(items){ return (items||[]).map(i=>`${i.name} ${i.type==='time'?(i.sec>=60?(i.sec/60)+'분':i.sec+'초'):i.reps+'회'}×${i.sets}`).join(', '); }
@@ -984,7 +992,7 @@ function openEditor(id){
   if(e.type==='strength') f=`<label>${e.assist?'보조 중량':'중량'} (kg)<input id="fKg" type="number" step="2.5" inputmode="decimal" value="${r.kg??e.kg}"></label><label>횟수<input id="fReps" type="number" inputmode="numeric" value="${r.reps??e.reps}"></label><label>세트<input id="fSets" type="number" inputmode="numeric" value="${r.sets??e.sets}"></label>`;
   sh.innerHTML=`<div class="box"><h3>${e.name}</h3><div class="plan">계획: ${e.spec}${e.adj?` · <span style="color:var(--opt)">${e.adj}</span>`:''} · 실제 수행한 값으로 고쳐서 완료하세요</div>
     <div class="fields">${f}</div><div class="est">예상 소모 <b class="num" id="est">–</b> kcal</div>
-    ${e.type==='cardio'?`<div class="bw"><h4>맨몸 운동 추가 <small>스트레칭·회복 시간에 한 코어·맨몸 운동을 넣으면 칼로리와 점수(최대 +5)에 반영됩니다</small></h4><div class="search"><input id="bwName" placeholder="예) 사이드 플랭크, 버드독, 데드버그" autocomplete="off"><div class="sugg" id="bwSugg" hidden></div></div><div id="bwList"></div><div class="est" id="bwEst"></div></div>`:''}
+    ${e.type==='cardio'?`<div class="bw"><h4>맨몸 운동 추가 <small>이름을 입력하면 목록에서 찾고, 없으면 AI가 운동을 판단해 세트·시간·부위를 채웁니다. 칼로리와 점수(최대 +5)에 반영</small></h4><div class="search"><input id="bwName" placeholder="예) 사이드 플랭크, 버드독, 데드버그" autocomplete="off"><div class="sugg" id="bwSugg" hidden></div></div><div id="bwList"></div><div class="est" id="bwEst"></div></div>`:''}
     ${e.type!=='cardio'?`<div class="timer"><div class="clock num" id="tClock">${fmtT(REST.dur)}</div><div class="tbtns"><button id="t60" data-d="60">60초</button><button id="t90" data-d="90">90초</button><button id="t120" data-d="120">120초</button><button id="tStart">▶ 시작</button><button id="tReset">↺</button></div><small id="tInfo">세트 끝나면 「시작」 — 끝나면 진동·알림음</small></div>`:''}
     <div class="acts">${r.done?'<button class="btn danger" id="undo">완료 취소</button>':''}<button class="btn" id="cancel">닫기</button><button class="btn pri" id="ok">${r.done?'수정 저장':'완료 처리'}</button></div></div>`;
   document.body.appendChild(sh);
@@ -994,12 +1002,22 @@ function openEditor(id){
       $('bwList').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{ bwItems[+inp.dataset.i][inp.dataset.f]=Math.max(0,+inp.value||0); est(); bwEst(); });
       $('bwList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ bwItems.splice(+b.dataset.del,1); drawBw(); est(); bwEst(); }); bwEst(); };
     const bwEst=()=>{ const m=bwMinutes(bwItems); $('bwEst').innerHTML=bwItems.length?`맨몸 운동 약 <b class="num">${Math.round(m)}</b>분 · <b class="num">${weight()?Math.round(bwKcal(bwItems)):'–'}</b> kcal · 점수 +${Math.min(5,Math.round(m/2))}`:''; };
-    const addBw=b=>{ if(bwItems.some(i=>i.name===b[0])){ toast('이미 추가된 운동입니다'); return; } bwItems.push({name:b[0],type:b[1],sets:b[2],[b[1]==='time'?'sec':'reps']:b[3],met:b[4],g:b[5],note:b[6]}); $('bwName').value=''; $('bwSugg').hidden=true; drawBw(); est(); };
-    $('bwName').addEventListener('input',()=>{ const q=norm($('bwName').value); const box=$('bwSugg'); if(!q){ box.hidden=true; return; } const hits=BW.filter(b=>norm(b[0]).includes(q)).slice(0,10);
-      box.innerHTML=hits.map((b,i)=>`<button type="button" data-i="${BW.indexOf(b)}"><span>${b[0]}</span><small>${b[1]==='time'?b[3]+'초':b[3]+'회'} × ${b[2]}세트</small></button>`).join('')||'<button type="button" disabled><small>목록에 없음 — 아래 「직접 추가」</small></button>';
-      if(!hits.length) box.innerHTML+=`<button type="button" data-custom="1"><span>「${$('bwName').value.trim()}」 직접 추가</span><small>회수형 · 3세트</small></button>`;
-      box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>addBw(BW[+b.dataset.i])); const c=box.querySelector('[data-custom]'); if(c) c.onclick=()=>addBw([$('bwName').value.trim(),'reps',3,12,3.0,'core','']); });
-    $('bwName').addEventListener('focus',()=>{ if(!$('bwName').value){ const box=$('bwSugg'); box.innerHTML=BW.slice(0,10).map(b=>`<button type="button" data-i="${BW.indexOf(b)}"><span>${b[0]}</span><small>${b[1]==='time'?b[3]+'초':b[3]+'회'} × ${b[2]}세트</small></button>`).join(''); box.hidden=false; box.querySelectorAll('button').forEach(b=>b.onclick=()=>addBw(BW[+b.dataset.i])); } });
+    const addBw=b=>{ if(!b) return; if(bwItems.some(i=>i.name===b[0])){ toast('이미 추가된 운동입니다'); return; } bwItems.push({name:b[0],type:b[1],sets:b[2],[b[1]==='time'?'sec':'reps']:b[3],met:b[4],g:b[5],note:b[6]}); $('bwName').value=''; $('bwSugg').hidden=true; drawBw(); est(); };
+    let bwTimer=null, bwSeq=0;
+    const bwRow=(b,tag)=>`<span>${b[0]}${tag?` <small class="pill">${tag}</small>`:''}</span><small>${b[1]==='time'?b[3]+'초':b[3]+'회'} × ${b[2]}세트${b[6]?' · '+b[6]:''}</small>`;
+    const aiSearch=async q=>{ const seq=++bwSeq; const box=$('bwSugg'); box.innerHTML=`<button type="button" disabled><small>✨ AI가 「${q}」을(를) 찾는 중…</small></button>`; box.hidden=false;
+      try{ const def=await aiBwLookup(q); if(seq!==bwSeq) return; if(!def){ box.innerHTML=`<button type="button" disabled><small>AI: 운동으로 인식하지 못했습니다</small></button><button type="button" data-custom="1"><span>「${q}」 직접 추가</span><small>회수형 · 3세트</small></button>`; }
+        else { box.innerHTML=`<button type="button" data-ai="1">${bwRow(def,'AI')}</button>`; box.querySelector('[data-ai]').onclick=()=>addBw(def); }
+        const c=box.querySelector('[data-custom]'); if(c) c.onclick=()=>addBw([q,'reps',3,12,3.0,'core','']); }
+      catch(e){ if(seq===bwSeq) box.innerHTML=`<button type="button" disabled><small>AI 실패: ${e.message.slice(0,50)}</small></button><button type="button" data-custom="1"><span>「${q}」 직접 추가</span></button>`; const c=box.querySelector('[data-custom]'); if(c) c.onclick=()=>addBw([q,'reps',3,12,3.0,'core','']); } };
+    $('bwName').addEventListener('input',()=>{ clearTimeout(bwTimer); bwSeq++; const raw=$('bwName').value.trim(), q=norm(raw); const box=$('bwSugg'); if(!q){ box.hidden=true; return; }
+      const all=bwAll(); const hits=all.filter(b=>norm(b[0]).includes(q)||norm(b[0]).replace(/[()·\-]/g,'').includes(q)).slice(0,10);
+      box.innerHTML=hits.map((b,i)=>`<button type="button" data-i="${i}">${bwRow(b,b[7]==='my'?'내 운동':'')}</button>`).join('');
+      if(!hits.length) box.innerHTML=API.key?`<button type="button" disabled><small>목록에 없음 — 입력을 멈추면 AI가 찾습니다 (Enter로 바로)</small></button>`:`<button type="button" disabled><small>목록에 없음 — 설정에서 AI 키를 넣으면 자동으로 찾아줍니다</small></button><button type="button" data-custom="1"><span>「${raw}」 직접 추가</span><small>회수형 · 3세트</small></button>`;
+      box.hidden=false; box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>addBw(hits[+b.dataset.i])); const c=box.querySelector('[data-custom]'); if(c) c.onclick=()=>addBw([raw,'reps',3,12,3.0,'core','']);
+      if(!hits.length&&API.key&&q.length>=2) bwTimer=setTimeout(()=>aiSearch(raw),1200); });
+    $('bwName').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); clearTimeout(bwTimer); const raw=$('bwName').value.trim(); if(!raw) return; const hit=bwAll().find(b=>norm(b[0]).includes(norm(raw))); if(hit) addBw(hit); else if(API.key) aiSearch(raw); else addBw([raw,'reps',3,12,3.0,'core','']); } });
+    $('bwName').addEventListener('focus',()=>{ if(!$('bwName').value){ const box=$('bwSugg'); const list=bwAll().slice(0,12); box.innerHTML=list.map((b,i)=>`<button type="button" data-i="${i}">${bwRow(b,b[7]==='my'?'내 운동':'')}</button>`).join(''); box.hidden=false; box.querySelectorAll('button').forEach(b=>b.onclick=()=>addBw(list[+b.dataset.i])); } });
     drawBw(); }
   const est=()=>{$('est').textContent=weight()?Math.round(kcalFor(e,read())):'–';};
   sh.querySelectorAll('input').forEach(i=>i.oninput=est); est();
@@ -1344,7 +1362,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.11';
+const APP_VERSION='0.12';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
