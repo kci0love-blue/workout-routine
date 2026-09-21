@@ -344,7 +344,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.5</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.6</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -369,7 +369,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.5 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.6 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -385,7 +385,7 @@ h2{margin:0 0 10px;font-size:17px}
 
 <script>
 /* ============ 데이터: 이미지 · 음식 DB ============ */
-const IMG = {treadmill:'img/treadmill.jpg',chest:'img/chest.jpg',lat:'img/lat.jpg',row:'img/row.jpg',dips:'img/dips.jpg',plank:'img/plank.jpg',incline:'img/incline.jpg',stretchU:'img/stretchU.jpg',bike:'img/bike.jpg',stretch:'img/stretch.jpg',legpress:'img/legpress.jpg',pecdeck:'img/pecdeck.jpg',abslide:'img/abslide.jpg',elliptical:'img/elliptical.jpg',foam:'img/foam.jpg',hack:'img/hack.jpg',legcurl:'img/legcurl.jpg',legext:'img/legext.jpg',inner:'img/inner.jpg',totalhip:'img/totalhip.jpg'};
+const IMG = {treadmill:'img/treadmill.jpg',chest:'img/chest.jpg',lat:'img/lat.jpg',row:'img/row.jpg',dips:'img/dips.jpg',plank:'img/plank.jpg',incline:'img/incline.jpg',stretchU:'img/stretchU.jpg',bike:'img/bike.jpg',stretch:'img/stretch.jpg',legpress:'img/legpress.jpg',pecdeck:'img/pecdeck.jpg',abslide:'img/abslide.jpg',elliptical:'img/elliptical.jpg',foam:'img/foam.jpg',hack:'img/hack.jpg',legcurl:'img/legcurl.jpg',legext:'img/legext.jpg',inner:'img/inner.jpg',totalhip:'img/totalhip.jpg',bench:'img/bench.jpg',deadlift:'img/deadlift.jpg'};
 /* 음식 DB — 1회 제공량 기준 어림값 [이름, kcal, 단백질g, 탄수화물g, 지방g, 단위, 분류]
    분류: rice(밥류) soup(국·찌개) meat(고기) fish(생선·해산물) noodle(면) bread(빵·분식) side(반찬) veg(채소·과일)
          dairy(유제품·계란) snack(간식·과자) drink(음료) fast(패스트푸드) alcohol(술)
@@ -546,6 +546,7 @@ const ROUTINE = {
   1:{name:'월요일',focus:'상체 근력',color:'var(--dmon)',ex:[
     {id:'mon1',name:'러닝머신',img:'treadmill',type:'cardio',g:'cardio',min:9,met:3.8,spec:'걷기 8~10분',lvl:'must'},
     {id:'mon2',name:'체스트 프레스',img:'chest',type:'strength',g:'chest',kg:35,reps:11,sets:3,rng:[10,12],spec:'35kg | 10~12회 × 3세트',lvl:'must'},
+    {id:'mon8',name:'벤치 프레스',img:'bench',type:'strength',g:'chest',kg:30,reps:9,sets:3,rng:[8,10],step:2.5,spec:'바벨 30kg | 8~10회 × 3세트',lvl:'must'},
     {id:'mon3',name:'랫풀다운',img:'lat',type:'strength',g:'back',kg:30,reps:11,sets:3,rng:[10,12],spec:'30kg | 10~12회 × 3세트',lvl:'must'},
     {id:'mon4',name:'로잉 머신',img:'row',type:'strength',g:'back',kg:30,reps:11,sets:3,rng:[10,12],spec:'30kg | 10~12회 × 3세트',lvl:'must'},
     {id:'mon5',name:'딥스 머신',img:'dips',type:'strength',g:'chest',kg:65,reps:8,sets:2,rng:[6,10],assist:true,spec:'보조 65kg | 6~10회 × 2세트',lvl:'opt'},
@@ -559,6 +560,7 @@ const ROUTINE = {
     {id:'wed1',name:'실내 자전거',img:'bike',type:'cardio',g:'cardio',min:9,met:4.8,spec:'8~10분',lvl:'must'},
     {id:'wed2',name:'해크 스쿼트',img:'hack',type:'strength',g:'legs',kg:0,reps:11,sets:3,rng:[10,12],spec:'빈 머신 적응 | 10~12회 × 3세트',lvl:'must'},
     {id:'wed3',name:'레그 컬',img:'legcurl',type:'strength',g:'legs',kg:27.5,reps:11,sets:3,rng:[10,12],spec:'25~30kg | 10~12회 × 3세트',lvl:'must'},
+    {id:'wed8',name:'데드리프트',img:'deadlift',type:'strength',g:'legs',g2:'back',kg:40,reps:7,sets:2,rng:[6,8],step:5,spec:'바벨 40kg | 6~8회 × 2세트',lvl:'opt'},
     {id:'wed4',name:'레그 익스텐션',img:'legext',type:'strength',g:'legs',kg:27.5,reps:11,sets:2,rng:[10,12],spec:'25~30kg | 10~12회 × 2세트',lvl:'opt'},
     {id:'wed5',name:'이너 타이',img:'inner',type:'strength',g:'legs',kg:30,reps:13,sets:2,rng:[12,15],spec:'25~35kg | 12~15회 × 2세트',lvl:'opt'},
     {id:'wed6',name:'토탈 힙',img:'totalhip',type:'strength',g:'legs',kg:10,reps:24,sets:2,rng:[20,24],spec:'가벼운 무게 | 좌우 12회 × 2세트',lvl:'opt'},
@@ -569,6 +571,7 @@ const ROUTINE = {
     {id:'thu3',name:'폼롤링·스트레칭',img:'foam',type:'cardio',g:'cardio',min:10,met:2.3,spec:'10분',lvl:'must'}]},
   5:{name:'금요일',focus:'전신 근력',color:'var(--dfri)',ex:[
     {id:'fri1',name:'러닝머신',img:'treadmill',type:'cardio',g:'cardio',min:9,met:3.8,spec:'걷기 8~10분',lvl:'must'},
+    {id:'fri9',name:'데드리프트',img:'deadlift',type:'strength',g:'back',g2:'legs',kg:40,reps:7,sets:3,rng:[6,8],step:5,spec:'바벨 40kg | 6~8회 × 3세트',lvl:'must'},
     {id:'fri2',name:'레그 프레스',img:'legpress',type:'strength',g:'legs',kg:75,reps:12,sets:2,rng:[10,12],step:5,spec:'70~80kg | 12회 × 2세트',lvl:'must'},
     {id:'fri3',name:'체스트 프레스',img:'chest',type:'strength',g:'chest',kg:35,reps:11,sets:3,rng:[10,12],spec:'35kg | 10~12회 × 3세트',lvl:'must'},
     {id:'fri4',name:'랫풀다운',img:'lat',type:'strength',g:'back',kg:30,reps:11,sets:3,rng:[10,12],spec:'30kg | 10~12회 × 3세트',lvl:'must'},
@@ -654,7 +657,7 @@ function lastPain(k){ // 최근 3일 내 통증 기록
 }
 function trainedGroups(k){ // 해당 날 완료된 근력 부위 → {g: sets} (기록 자체에 저장된 부위·세트 사용)
   const log=S.log[k]||{}, out={};
-  for(const id in log){ const r=log[id]; if(!r.done) continue; const e=EXBYID[id]; const g=r.g||(e&&e.g); if(!g||g==='cardio'||g==='none') continue; out[g]=(out[g]||0)+Number(r.sets??(e&&e.sets)??1); }
+  for(const id in log){ const r=log[id]; if(!r.done) continue; const e=EXBYID[id]; const g=r.g||(e&&e.g); if(!g||g==='cardio'||g==='none') continue; const n=Number(r.sets??(e&&e.sets)??1); out[g]=(out[g]||0)+n; const g2=r.g2||(e&&e.g2); if(g2) out[g2]=(out[g2]||0)+n; }
   return out;
 }
 /* 전체 운동 목록(이름 기준 중복 제거) · id → 운동 정의 */
@@ -674,7 +677,7 @@ function rotationTpl(k){
   else{
     const last=lastLoggedTpl(k); let idx=last?(ROT.indexOf(last.tpl)+1)%7:0;
     const t1=trainedGroups(shift(k,-1)), t2=trainedGroups(shift(k,-2)); out=null;
-    for(let s=0;s<7;s++){ const cand=ROT[(idx+s)%7]; const groups=[...new Set(ROUTINE[cand].ex.filter(e=>e.type==='strength'||e.type==='time').map(e=>e.g))];
+    for(let s=0;s<7;s++){ const cand=ROT[(idx+s)%7]; const groups=[...new Set(ROUTINE[cand].ex.filter(e=>(e.type==='strength'||e.type==='time')&&e.lvl==='must').flatMap(e=>e.g2?[e.g,e.g2]:[e.g]))];
       const clash=groups.filter(g=>(t1[g]||0)>=3||(t1[g]||0)+(t2[g]||0)>=6);
       if(!clash.length){ out={tpl:cand,why:s?`${ROUTINE[ROT[idx]].focus}은(는) 전일 훈련 부위(${clash.length?clash.map(x=>GNAME[x]).join('·'):[...new Set(ROUTINE[ROT[idx]].ex.filter(e=>e.type==='strength').map(e=>GNAME[e.g]))].join('·')})와 겹쳐 건너뜀`:(last?'':'첫 루틴')}; break; } }
     if(!out) out={tpl:ROT[idx],why:''};
@@ -711,7 +714,8 @@ function planFor(k, raw){
   plan.ex.forEach(e=>{
     if(e.type!=='strength'&&e.type!=='time') return;
     if(pain&&pain.part&&pain.part===e.g&&pain.pain>=3){ e.lvl='opt'; e.sets=Math.max(1,e.sets-1); e.adj=`${GNAME[e.g]} 통증 → 가볍게, 생략 가능`; return; }
-    if((t1[e.g]||0)>=3){ if(e.lvl==='must'){ e.lvl='opt'; e.adj=`어제 ${GNAME[e.g]} ${t1[e.g]}세트 → 48시간 회복, 선택으로 변경`; } e.sets=Math.max(1,e.sets-1); }
+    const tg=Math.max(t1[e.g]||0,e.g2?(t1[e.g2]||0):0);
+    if(tg>=3){ if(e.lvl==='must'){ e.lvl='opt'; e.adj=`어제 ${GNAME[e.g]} ${tg}세트 → 48시간 회복, 선택으로 변경`; } e.sets=Math.max(1,e.sets-1); }
     else if((t1[e.g]||0)+(t2[e.g]||0)>=8){ e.sets=Math.max(1,e.sets-1); e.adj=`이틀 연속 ${GNAME[e.g]} 훈련 → 세트 축소`; }
   });
   if(plan.ex.some(e=>e.adj&&e.adj.includes('회복'))) plan.notes.push('전일 훈련 부위는 회복 우선으로 낮췄습니다');
@@ -868,7 +872,7 @@ function openEditor(id){
   const est=()=>{$('est').textContent=weight()?Math.round(kcalFor(e,read())):'–';};
   sh.querySelectorAll('input').forEach(i=>i.oninput=est); est();
   const close=()=>sh.remove(); sh.onclick=ev=>{if(ev.target===sh)close();}; $('cancel').onclick=close;
-  $('ok').onclick=()=>{ freezePlan(k); S.log[k]=S.log[k]||{}; S.log[k][id]=Object.assign({},read(),{done:true,name:e.name,g:e.g,at:Date.now()}); save(); close(); renderToday(); const st=dayStats(k); toast(st.hit?'🎯 오늘 운동 목표 달성!':'완료 처리했습니다'); };
+  $('ok').onclick=()=>{ freezePlan(k); S.log[k]=S.log[k]||{}; S.log[k][id]=Object.assign({},read(),{done:true,name:e.name,g:e.g,g2:e.g2,at:Date.now()}); save(); close(); renderToday(); const st=dayStats(k); toast(st.hit?'🎯 오늘 운동 목표 달성!':'완료 처리했습니다'); };
   if($('undo')) $('undo').onclick=()=>{toggleDone(k,e,false); close(); renderToday();};
 }
 function toggleDone(k,e,on){ S.log[k]=S.log[k]||{}; if(on){ freezePlan(k); S.log[k][e.id]={done:true,name:e.name,g:e.g,at:Date.now()}; } else delete S.log[k][e.id]; save(); }
@@ -1061,7 +1065,7 @@ function openManualLog(first){
   $('mSave').onclick=()=>{ const k=$('mDate').value; if(!k){ toast('날짜를 선택하세요'); return; }
     const rows=[...sh.querySelectorAll('.mrow')].filter(r=>r.querySelector('.mchk input').checked); if(!rows.length){ toast('한 운동을 하나 이상 체크하세요'); return; }
     S.log[k]=S.log[k]||{}; const exs=[];
-    rows.forEach(r=>{ const e=EXBYID[r.dataset.id]; const rec={done:true,name:e.name,g:e.g,at:Date.now(),manual:true}; r.querySelectorAll('input[data-f]').forEach(i=>rec[i.dataset.f]=+i.value); S.log[k][e.id]=rec; exs.push(clone(e)); });
+    rows.forEach(r=>{ const e=EXBYID[r.dataset.id]; const rec={done:true,name:e.name,g:e.g,g2:e.g2,at:Date.now(),manual:true}; r.querySelectorAll('input[data-f]').forEach(i=>rec[i.dataset.f]=+i.value); S.log[k][e.id]=rec; exs.push(clone(e)); });
     // 그날 루틴 스냅샷 = 직접 입력한 항목들
     const tpl=inferTpl(k); S.plan[k]={name:ROUTINE[fromKey(k).getDay()].name,focus:'직접 입력',color:tpl!=null?ROUTINE[tpl].color:'var(--dsun)',ex:exs,notes:['직접 입력한 기록'],auto:false,manual:true,tpl};
     const today=key(new Date()); for(const p in S.plan){ if(p>k&&p<=today&&!hasDone(p)) delete S.plan[p]; }
@@ -1070,7 +1074,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.5';
+const APP_VERSION='0.6';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
