@@ -425,7 +425,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.12</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.13</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -450,7 +450,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.12 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.13 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -765,6 +765,7 @@ function trainedGroups(k){ // 해당 날 완료된 근력 부위 → {g: sets} (
 }
 /* 전체 운동 목록(이름 기준 중복 제거) · id → 운동 정의 */
 const EXBYID={}; Object.values(ROUTINE).forEach(d=>d.ex.forEach(e=>EXBYID[e.id]=e));
+const FREE={id:'free1',name:'맨몸·코어 운동',img:'plank',type:'cardio',g:'cardio',min:10,met:3.0,spec:'10분 · 완료 창에서 맨몸 운동 추가',lvl:'must'}; EXBYID[FREE.id]=FREE;
 const EXALL=(()=>{const seen=new Set(),out=[]; [1,3,5,2,4,6,0].forEach(w=>ROUTINE[w].ex.forEach(e=>{ if(e.type==='rest'||seen.has(e.name)) return; seen.add(e.name); out.push(e); })); return out;})();
 /* ---------- 부위 순환 ---------- */
 const ROT=[1,2,3,4,5,6,0]; // 상체 → 저강도유산소 → 하체 → 관절보호유산소 → 전신 → 지방연소유산소 → 회복
@@ -795,7 +796,7 @@ function lastRecord(exName,k){ // 같은 이름 운동의 직전 완료 기록 (
 }
 const clone=o=>JSON.parse(JSON.stringify(o));
 function planFor(k, raw){
-  if(S.plan[k]) return S.plan[k];               // 완료 기록이 생기면 고정된 스냅샷
+  if(S.plan[k]){ const p=S.plan[k]; if(p.tpl!=null&&!p.rot&&(S.goal.mode||'rotation')==='rotation') p.rot=rotationLabel(p.tpl); return p; }               // 완료 기록이 생기면 고정된 스냅샷
   const d=fromKey(k); const rot=(S.goal.mode||'rotation')==='rotation'?rotationTpl(k):null; const tplKey=rot?rot.tpl:d.getDay(); const base=ROUTINE[tplKey];
   const plan={name:ROUTINE[d.getDay()].name,focus:base.focus,color:base.color,ex:clone(base.ex),notes:[],auto:false,tpl:tplKey};
   if(rot){ plan.rot=rotationLabel(tplKey); if(rot.why&&rot.why!=='예정'&&rot.why!=='첫 루틴') plan.notes.push(rot.why); }
@@ -944,12 +945,15 @@ function renderToday(){
     return `<button data-k="${key(d)}" class="${key(d)===k?'on':''}" style="--c:${s.day.color}"><b>${DAYS[i]}</b><small class="num">${d.getDate()}</small><span class="dot ${s.hit?'full':s.any?'part':''}"></span></button>`;}).join('');
   $('dayChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=fromKey(b.dataset.k);renderToday();});
   const pct=day.ex.length?Math.round(st.done.length/day.ex.length*100):0;
-  let autoHtml='';
-  if(day.auto){ autoHtml=`<div class="auto"><b>🤖 자동 설정${S.plan[k]?' (기록 시작 후 고정)':''}</b>${day.notes.length?'<ul>'+day.notes.map(n=>`<li>${n}</li>`).join('')+'</ul>':'전일 이력·통증 기록에 특이사항이 없어 기본 루틴 그대로 진행합니다.'}${!S.plan[k]?'<div class="acts"><button class="btn sm" id="useBase">기본 루틴으로 보기</button></div>':'<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button></div>'}</div>`; }
-  else if(Number(S.goal.auto)&&S.plan[k]) autoHtml=`<div class="auto"><b>고정된 루틴</b>기록이 시작되어 오늘 루틴이 고정되었습니다.<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button></div></div>`;
+  let autoHtml=''; const builderBtn=`<button class="btn sm" id="buildPlan">루틴 직접 구성</button>`;
+  if(day.auto){ autoHtml=`<div class="auto"><b>🤖 자동 설정${S.plan[k]?' (기록 시작 후 고정)':''}</b>${day.notes.length?'<ul>'+day.notes.map(n=>`<li>${n}</li>`).join('')+'</ul>':'전일 이력·통증 기록에 특이사항이 없어 기본 루틴 그대로 진행합니다.'}${!S.plan[k]?'<div class="acts"><button class="btn sm" id="useBase">기본 루틴으로 보기</button>'+builderBtn+'</div>':'<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button>'+builderBtn+'</div>'}</div>`; }
+  else if(S.plan[k]&&S.plan[k].manual) autoHtml=`<div class="auto" style="border:1px solid var(--opt)"><b>✍️ 직접 구성한 루틴</b>${day.rot?day.rot+' 단계로 기록됩니다 · ':''}다음 날 루틴은 이 훈련 부위를 피해 자동으로 이어집니다.<div class="acts"><button class="btn sm" id="resetPlan">자동 루틴으로 되돌리기</button>${builderBtn}</div></div>`;
+  else if(S.plan[k]) autoHtml=`<div class="auto"><b>고정된 루틴</b>기록이 시작되어 오늘 루틴이 고정되었습니다.<div class="acts"><button class="btn sm" id="resetPlan">오늘 설정 다시 생성</button>${builderBtn}</div></div>`;
+  else autoHtml=`<div class="auto"><b>요일 고정 루틴</b><div class="acts">${builderBtn}</div></div>`;
   $('head').innerHTML=`<h1>${day.name}</h1><div class="sub">${day.focus}</div><div class="hint">${day.rot?day.rot+' · ':''}사진 → 이름 → 중량·횟수 순서로 확인</div>
     <div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><span class="num">${st.done.length}/${day.ex.length} 완료 · 필수 ${st.mustDone.length}/${st.must.length}</span></div>${autoHtml}`;
   { const lastAny=S.weekly[S.weekly.length-1]; const dow=cur.getDay(); const todayK=key(new Date()); if(k===todayK&&(dow===6||dow===0)&&(!lastAny||(new Date()-fromKey(lastAny.date))/864e5>=6)) $('head').insertAdjacentHTML('beforeend',`<div class="auto" style="border:1px solid var(--must)"><b>⚖️ 이번 주 측정</b>아침 공복에 체중·허리둘레(가능하면 인바디)를 재고 기록하세요.<div class="acts"><button class="btn sm" id="goWeekly">측정 기록 입력</button></div></div>`); if($('goWeekly')) $('goWeekly').onclick=()=>{ showView('profile'); $('wDate').value=k; $('wWeight').scrollIntoView({behavior:'smooth',block:'center'}); }; }
+  if($('buildPlan')) $('buildPlan').onclick=()=>openRoutineBuilder(k);
   if($('useBase')) $('useBase').onclick=()=>{ S.plan[k]=clone(planFor(k,true)); S.plan[k].auto=false; save(); renderToday(); toast('오늘은 기본 루틴으로 진행합니다'); };
   if($('resetPlan')) $('resetPlan').onclick=()=>{ if(S.log[k]&&Object.keys(S.log[k]).length&&!confirm('오늘 완료 기록이 있습니다. 루틴을 다시 생성하면 기록과 항목이 어긋날 수 있습니다. 계속할까요?')) return; delete S.plan[k]; save(); renderToday(); };
   $('exList').innerHTML=day.ex.map((e,i)=>{const r=log[e.id]||{};const done=!!r.done;const kc=done?kcalFor(e,r):0;
@@ -1332,6 +1336,36 @@ $('resetBtn').onclick=()=>{ if(confirm('모든 기록과 프로필을 지울까�
 
 
 /* ============ 지난 운동 직접 입력 (첫 실행 온보딩) ============ */
+/* ============ 루틴 직접 구성 (오늘 또는 지정일) ============ */
+const STAGES=[[1,'상체 근력'],[2,'저강도 유산소'],[3,'하체 근력'],[4,'관절보호 유산소'],[5,'전신 근력'],[6,'지방연소 유산소'],[0,'완전 회복']];
+function guessStage(exs){ const g={}; exs.forEach(e=>{ if(e.type==='strength'||e.type==='time'){ g[e.g]=(g[e.g]||0)+1; if(e.g2) g[e.g2]=(g[e.g2]||0)+1; } }); const up=(g.chest||0)+(g.back||0), lo=g.legs||0; const str=up+lo+(g.core||0);
+  if(!str) return exs.some(e=>e.met>=4.5)?6:2; if(lo>=2*up) return 3; if(up>=2*lo) return 1; return 5; }
+function openRoutineBuilder(k){
+  const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet'; const cur0=planFor(k); const log=S.log[k]||{};
+  const groups=[['cardio','유산소·회복'],['chest','가슴·어깨'],['back','등'],['legs','하체'],['core','코어']];
+  const list=EXALL.concat([FREE]); const preset=new Set((S.plan[k]&&S.plan[k].manual)?S.plan[k].ex.map(e=>e.id):[]);
+  const row=e=>{ const on=preset.has(e.id); let f='';
+    if(e.type==='cardio') f=`<label>분<input type="number" data-f="min" value="${e.min}" inputmode="numeric"></label>`;
+    else if(e.type==='time') f=`<label>초<input type="number" data-f="sec" value="${e.sec}" inputmode="numeric"></label><label>세트<input type="number" data-f="sets" value="${e.sets}" inputmode="numeric"></label>`;
+    else f=`<label>${e.assist?'보조 ':''}kg<input type="number" data-f="kg" step="2.5" value="${e.kg}" inputmode="decimal"></label><label>회<input type="number" data-f="reps" value="${e.reps}" inputmode="numeric"></label><label>세트<input type="number" data-f="sets" value="${e.sets}" inputmode="numeric"></label>`;
+    return `<div class="mrow" data-id="${e.id}"><label class="mchk"><input type="checkbox" ${on?'checked':''}> <b>${e.name}</b> <small style="color:var(--muted)">${e.spec}</small>${log[e.id]&&log[e.id].done?' <span class="pill ok">완료됨</span>':''}</label><div class="fields mf" ${on?'':'hidden'}>${f}<label>구분<select data-f="lvl"><option value="must">필수</option><option value="opt">선택</option><option value="fin">마무리</option></select></label></div></div>`; };
+  sh.innerHTML=`<div class="box"><h3>루틴 직접 구성 <small style="color:var(--muted);font-weight:400">${k}</small></h3>
+    <div class="plan">오늘 할(또는 한) 운동을 고르면 그날 카드가 이 목록으로 바뀝니다. 완료 처리·타이머·칼로리는 평소와 같고, 저장 시 고른 순환 단계 다음부터 자동 루틴이 이어집니다.</div>
+    <div class="fields" style="margin-bottom:10px"><label class="wide">순환 단계로 기록 <small>(비우면 운동 구성으로 자동 판단)</small><select id="bStage"><option value="">자동 판단</option>${STAGES.map(s=>`<option value="${s[0]}">${s[1]}</option>`).join('')}</select></label></div>
+    ${groups.map(([g,n])=>`<div class="mgrp"><h4>${n}</h4>${list.filter(e=>e.g===g).map(row).join('')}</div>`).join('')}
+    <div class="acts"><button class="btn" id="bClose">닫기</button><button class="btn pri" id="bSave">이 루틴으로 설정</button></div></div>`;
+  document.body.appendChild(sh);
+  sh.querySelectorAll('.mchk input').forEach(c=>c.onchange=()=>{ c.closest('.mrow').querySelector('.mf').hidden=!c.checked; });
+  const close=()=>sh.remove(); $('bClose').onclick=close; sh.onclick=ev=>{ if(ev.target===sh) close(); };
+  $('bSave').onclick=()=>{ const rows=[...sh.querySelectorAll('.mrow')].filter(r=>r.querySelector('.mchk input').checked); if(!rows.length){ toast('운동을 하나 이상 고르세요'); return; }
+    const exs=rows.map(r=>{ const e=clone(EXBYID[r.dataset.id]); r.querySelectorAll('[data-f]').forEach(i=>{ const v=i.dataset.f==='lvl'?i.value:+i.value; e[i.dataset.f]=v; }); e.adj=undefined; e.spec=e.type==='rest'?e.spec:specOf(e); return e; });
+    const tpl=$('bStage').value===''?guessStage(exs):+$('bStage').value; const d=fromKey(k);
+    S.plan[k]={name:ROUTINE[d.getDay()].name,focus:'직접 구성 · '+ROUTINE[tpl].focus,color:ROUTINE[tpl].color,ex:exs,notes:[],auto:false,manual:true,tpl};
+    // 목록에서 빠진 항목의 완료 기록은 정리
+    const keep=new Set(exs.map(e=>e.id)); for(const id in log){ if(!keep.has(id)) delete log[id]; }
+    const today=key(new Date()); for(const p in S.plan){ if(p>k&&p<=today&&!hasDone(p)) delete S.plan[p]; }
+    save(); close(); renderToday(); toast(`오늘 루틴을 직접 구성했습니다 (${ROUTINE[tpl].focus} 단계)`); };
+}
 function openManualLog(first){
   const sh=document.createElement('div'); sh.className='sheet'; sh.id='sheet';
   const groups=[['cardio','유산소'],['chest','가슴·어깨'],['back','등'],['legs','하체'],['core','코어']];
@@ -1343,7 +1377,7 @@ function openManualLog(first){
     return `<div class="mrow" data-id="${e.id}"><label class="mchk"><input type="checkbox"> <b>${e.name}</b> <small style="color:var(--muted)">${e.spec}</small></label><div class="fields mf" hidden>${f}</div></div>`; };
   sh.innerHTML=`<div class="box"><h3>${first?'시작하기 — 최근에 한 운동을 알려주세요':'지난 운동 직접 입력'}</h3>
     <div class="plan">${first?'어제(또는 마지막으로 운동한 날) 한 운동을 체크하면, 그 부위를 피해서 오늘부터 이어갈 루틴을 만들어 드립니다. 없으면 「건너뛰기」.':'해당 날짜의 완료 기록으로 저장되며 다음 루틴 계산에 반영됩니다.'}</div>
-    <div class="fields" style="margin-bottom:10px"><label>운동한 날짜<input type="date" id="mDate" value="${def}" max="${key(new Date())}"></label></div>
+    <div class="fields" style="margin-bottom:10px"><label>운동한 날짜<input type="date" id="mDate" value="${def}" max="${key(new Date())}"></label><label>순환 단계<select id="mStage"><option value="">자동 판단</option>${STAGES.map(s=>`<option value="${s[0]}">${s[1]}</option>`).join('')}</select></label></div>
     ${groups.map(([g,n])=>`<div class="mgrp"><h4>${n}</h4>${EXALL.filter(e=>e.g===g).map(row).join('')}</div>`).join('')}
     <div class="acts">${first?'<button class="btn" id="mSkip">건너뛰기</button>':'<button class="btn" id="mSkip">닫기</button>'}<button class="btn pri" id="mSave">저장하고 시작</button></div></div>`;
   document.body.appendChild(sh);
@@ -1355,14 +1389,14 @@ function openManualLog(first){
     S.log[k]=S.log[k]||{}; const exs=[];
     rows.forEach(r=>{ const e=EXBYID[r.dataset.id]; const rec={done:true,name:e.name,g:e.g,g2:e.g2,at:Date.now(),manual:true}; r.querySelectorAll('input[data-f]').forEach(i=>rec[i.dataset.f]=+i.value); S.log[k][e.id]=rec; exs.push(clone(e)); });
     // 그날 루틴 스냅샷 = 직접 입력한 항목들
-    const tpl=inferTpl(k); S.plan[k]={name:ROUTINE[fromKey(k).getDay()].name,focus:'직접 입력',color:tpl!=null?ROUTINE[tpl].color:'var(--dsun)',ex:exs,notes:['직접 입력한 기록'],auto:false,manual:true,tpl};
+    const tpl=$('mStage').value===''?guessStage(exs):+$('mStage').value; S.plan[k]={name:ROUTINE[fromKey(k).getDay()].name,focus:'직접 입력 · '+ROUTINE[tpl].focus,color:ROUTINE[tpl].color,ex:exs,notes:['직접 입력한 기록'],auto:false,manual:true,tpl};
     const today=key(new Date()); for(const p in S.plan){ if(p>k&&p<=today&&!hasDone(p)) delete S.plan[p]; }
     S.onboarded=true; save(); close(); cur=new Date(); cur.setHours(0,0,0,0); showView('today'); toast('기록했습니다. 오늘 루틴을 그에 맞춰 정했습니다'); };
 }
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.12';
+const APP_VERSION='0.13';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
