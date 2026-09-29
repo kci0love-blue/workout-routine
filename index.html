@@ -187,6 +187,14 @@ h2{margin:0 0 10px;font-size:17px}
 .bwrow{display:grid;grid-template-columns:1fr 64px 64px auto;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
 .bwrow b{align-self:center}.bwrow label{font-size:11px;color:var(--muted);display:grid;gap:2px}.bwrow input{padding:6px 8px;background:var(--panel)}
 .bwrow .del{color:var(--faint);padding:6px}.bwrow small{grid-column:1/-1;color:var(--faint);font-size:11px;margin-top:-4px}
+.mascot{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:10px 12px;margin-bottom:12px;border-radius:16px;background:var(--panel);border:2px solid var(--mc,var(--line))}
+.mascot img{width:64px;height:64px;border-radius:14px;display:block}
+.mascot .mtext{min-width:0;display:grid;gap:2px}
+.mascot b{font-size:15px;line-height:1.25}
+.mascot small{font-size:12px;color:var(--muted)}
+.mascot.bad{animation:shake .5s ease 1}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){.mascot.bad{animation:none}}
 /* rest timer */
 .timer{margin-top:12px;padding:12px;border-radius:12px;background:var(--panel2);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
 .timer .clock{font-size:34px;font-weight:900;line-height:1;min-width:92px;text-align:center;font-variant-numeric:tabular-nums}
@@ -288,6 +296,7 @@ h2{margin:0 0 10px;font-size:17px}
 
   <!-- ===== 오늘 운동 ===== -->
   <section id="viewToday">
+    <button class="mascot" id="mascot"><img src="icon-192.png" alt=""><span class="mtext"><b id="mTitle"></b><small id="mSub"></small></span><span class="pill" id="mStreak"></span></button>
     <div class="days" id="dayChips"></div>
     <div class="head" id="head"></div>
     <div class="list" id="exList"></div>
@@ -425,7 +434,7 @@ h2{margin:0 0 10px;font-size:17px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.13</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.14</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
@@ -450,7 +459,7 @@ h2{margin:0 0 10px;font-size:17px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.13 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.14 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -935,7 +944,23 @@ $('suppManage').onclick=openSuppManage;
 
 /* ============ 렌더: 오늘 ============ */
 function setAccent(c){ document.documentElement.style.setProperty('--accent',c); }
+/* ---------- 마스코트 상태 (마지막 운동일 기준) ---------- */
+function mascotState(){
+  const today=key(new Date()); const todayDone=hasDone(today);
+  let last=null; for(let i=0;i<60;i++){ const k=shift(today,-i); if(hasDone(k)){ last=i; break; } }
+  // 연속일: 완료했거나 계획된 회복일(순환 0단계·일요일)인 날을 이어서 셈
+  let streak=0; for(let i=todayDone?0:1;i<90;i++){ const k=shift(today,-i); const p=S.plan[k]; const rest=(p&&p.tpl===0)||(!p&&fromKey(k).getDay()===0&&(S.goal.mode||'rotation')==='weekday'); if(hasDone(k)) streak++; else if(rest&&streak>0) continue; else break; }
+  if(last==null) return {cls:'',color:'var(--line)',title:'첫 운동을 기록해 보세요',sub:'카드를 눌러 완료하면 여기서 응원합니다',streak:0};
+  if(last===0) return {cls:'ok',color:'var(--ok)',title:streak>=3?`${streak}일 연속! 이 페이스 그대로 🔥`:'오늘도 완료! 잘했어요',sub:'내일 루틴은 오늘 훈련 부위를 피해 준비됩니다',streak};
+  if(last===1) return {cls:'ok',color:'var(--ok)',title:'좋아요, 오늘도 이어가요',sub:'어제 운동 완료 · 오늘 카드 하나만 끝내도 연속 유지',streak};
+  if(last===2) return {cls:'warn',color:'var(--warn)',title:'하루 걸렀네요',sub:'오늘은 필수 항목만이라도 — 다음 날 몰아서 하지 않기',streak};
+  if(last<=4) return {cls:'bad',color:'var(--bad)',title:`${last}일째 안 왔어요…`,sub:'스트레칭 10분부터 시작해도 됩니다. 루틴은 마지막 완료일 다음 순서로 이어집니다',streak:0};
+  return {cls:'bad',color:'var(--bad)',title:`${last}일이나 쉬었어요!`,sub:'무게는 마지막 기록보다 한 단계 낮춰 다시 시작하세요',streak:0};
+}
+function renderMascot(){ const m=mascotState(), el=$('mascot'); el.className='mascot '+m.cls; el.style.setProperty('--mc',m.color); $('mTitle').textContent=m.title; $('mSub').textContent=m.sub; $('mStreak').textContent=m.streak?`🔥 ${m.streak}일`:''; $('mStreak').hidden=!m.streak; }
+$('mascot').onclick=()=>{ cur=new Date(); cur.setHours(0,0,0,0); renderToday(); $('exList').scrollIntoView({behavior:'smooth',block:'start'}); };
 function renderToday(){
+  renderMascot();
   for(const x in rotMemo) delete rotMemo[x];
   const k=key(cur), st=dayStats(k), day=st.day, log=S.log[k]||{};
   setAccent(day.color);
@@ -1396,7 +1421,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.13';
+const APP_VERSION='0.14';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
