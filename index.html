@@ -23,11 +23,11 @@ img{max-width:100%}
   /* v0.15 B · 다크 스포티 — 바탕 무채색 + 강조색 1개(라임) */
   --bg:#0B0E13; --panel:#161B23; --panel2:#1F2630; --line:#2A3240; --field:#0F1319;
   --text:#F3F5F8; --muted:#8B95A5; --faint:#5F6878;
-  --accent:#C8F135; --on-accent:#0B0E13;
-  --must:#C8F135; --must-bg:rgba(200,241,53,.12); --opt:#8B95A5; --opt-bg:#1F2630; --fin:#7FD8E8; --fin-bg:rgba(127,216,232,.10);
-  --ok:#C8F135; --warn:#FFB547; --bad:#FF5C7A; --shadow:none;
-  --dmon:#C8F135; --dtue:#C8F135; --dwed:#C8F135; --dthu:#C8F135; --dfri:#C8F135; --dsat:#C8F135; --dsun:#C8F135;
-  --food:#C8F135;
+  --accent:#FFE14A; --on-accent:#0B0E13;
+  --must:var(--accent); --must-bg:color-mix(in srgb,var(--accent) 12%,transparent); --opt:#8B95A5; --opt-bg:#1F2630; --fin:#7FD8E8; --fin-bg:rgba(127,216,232,.10);
+  --ok:var(--accent); --warn:#FFB547; --bad:#FF5C7A; --shadow:none;
+  --dmon:var(--accent); --dtue:var(--accent); --dwed:var(--accent); --dthu:var(--accent); --dfri:var(--accent); --dsat:var(--accent); --dsun:var(--accent);
+  --food:var(--accent);
   --display:"Black Han Sans","Noto Sans KR",sans-serif;
   color-scheme:dark;
 }
@@ -285,7 +285,7 @@ h2{font-size:18px;font-weight:900;letter-spacing:-.01em}
 .btn.pri{background:var(--accent);color:var(--on-accent);font-weight:900}
 .btn.sm{min-height:36px;border-radius:11px}
 .pill{background:var(--panel2)}
-.pill.ok{color:var(--accent);background:rgba(200,241,53,.14)}
+.pill.ok{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .filebtn{background:var(--panel2);border:0;border-radius:12px}
 .chips button{background:var(--panel2);border:0}
 .sheet .box{border-top:0;border-radius:24px 24px 0 0}
@@ -375,7 +375,7 @@ h2{font-size:18px;font-weight:900;letter-spacing:-.01em}
 .cal .mh b{font-family:var(--display);font-weight:400;font-size:22px}
 .cal .mh button{background:var(--panel2);border:0;min-width:44px;min-height:40px;border-radius:12px}
 .cell{border:0;background:transparent;border-radius:12px}
-.cell.full{background:rgba(200,241,53,.22);border:0}
+.cell.full{background:color-mix(in srgb,var(--accent) 24%,transparent);border:0}
 .cell.part{background:rgba(255,181,71,.18);border:0}
 .cell.miss{background:rgba(255,92,122,.07)}
 .cell.today .d{color:var(--accent)}
@@ -459,6 +459,12 @@ details.more[open]{padding-bottom:14px}
 #viewProfile details.more .acts{margin-top:12px}
 .analysis b.t{font-size:15px}
 .fsheet .fields{grid-template-columns:repeat(2,1fr)}
+
+/* v0.17a 강조색 선택 */
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.swatches button{display:grid;justify-items:center;gap:6px;padding:10px 4px;border-radius:14px;background:var(--panel2);font-size:12px;font-weight:700;color:var(--muted);min-height:44px}
+.swatches button i{width:28px;height:28px;border-radius:50%;display:block}
+.swatches button.on{box-shadow:inset 0 0 0 2px var(--text);color:var(--text)}
 </style>
 </head>
 <body>
@@ -644,10 +650,15 @@ details.more[open]{padding-bottom:14px}
   <!-- ===== 설정 ===== -->
   <section id="viewSettings" hidden>
     <div class="card">
-      <h2>업데이트 <span class="pill" id="verPill">현재 v0.17</span></h2>
+      <h2>업데이트 <span class="pill" id="verPill">현재 v0.17a</span></h2>
       <p class="help" id="updHelp">GitHub Pages에 새 버전이 올라와 있는지 확인하고 바로 적용합니다. 기록·프로필·API 키는 브라우저에 그대로 남습니다.</p>
       <div id="updBox" class="analysis" style="margin-top:0"></div>
       <div class="acts"><button class="btn" id="checkUpd">업데이트 확인</button><button class="btn pri" id="doUpd" hidden>업데이트하기</button></div>
+    </div>
+    <div class="card">
+      <h2>강조 색상</h2>
+      <p class="help">버튼·진행 표시·완료 체크에 쓰는 색입니다. 휴대폰에서 잘 보이는 색을 고르세요. 이 기기에만 저장됩니다.</p>
+      <div class="swatches" id="accentPick"></div>
     </div>
     <div class="card">
       <h2>AI 분석 (선택)</h2>
@@ -669,7 +680,7 @@ details.more[open]{padding-bottom:14px}
     </div>
     <div class="card">
       <h2>정보</h2>
-      <p class="help" style="margin:0">일주일 운동 루틴 v0.17 · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
+      <p class="help" style="margin:0">일주일 운동 루틴 v0.17a · 요일별 루틴 체크, 식단·100점 평가, 자동 운동 설정, 달력 목표 관리. 단일 HTML 앱으로 서버 없이 동작합니다.</p>
     </div>
   </section>
 </div>
@@ -1540,7 +1551,7 @@ const pid=f=>'p'+f[0].toUpperCase()+f.slice(1);
 function loadProfile(){ PF.forEach(f=>{const el=$(pid(f)); if(el&&S.profile[f]!=null) el.value=S.profile[f];});
   $('gType').value=S.goal.type||'loss'; $('gWeight').value=S.goal.weight??''; $('gDate').value=S.goal.date??''; $('gDays').value=S.goal.days||5; $('gAuto').value=String(S.goal.auto??1); $('gMode').value=S.goal.mode||'rotation';
   renderDerived(); renderAnalysis(); }
-function loadSettings(){ $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderUpdate(); }
+function loadSettings(){ renderAccentPick(); $('apiProvider').value=API.provider||'gemini'; $('apiKey').value=API.key||''; $('apiModel').value=API.model||''; syncApiUI(); renderUpdate(); }
 function syncApiUI(){ const p=$('apiProvider').value; $('apiModel').placeholder=APIDEF[p].model; $('apiKey').placeholder=p==='gemini'?'AIza...':'sk-ant-...'; $('apiHelp').textContent=APIDEF[p].help; }
 $('apiProvider').addEventListener('change',syncApiUI);
 function readProfile(){ PF.forEach(f=>{const el=$(pid(f)); const v=el.value; S.profile[f]=v===''?undefined:(f==='name'||f==='sex'?v:Number(v));});
@@ -1676,7 +1687,7 @@ function openManualLog(first){
 $('manualLog').onclick=()=>openManualLog(false);
 
 /* ============ 업데이트 확인 ============ */
-const APP_VERSION='0.17';
+const APP_VERSION='0.17a';
 let UPD={latest:null,notes:'',state:'idle'};
 const verNum=v=>String(v).replace(/^v/,'').split(/[.a-z]/i).map(Number);
 function isNewer(a,b){ const x=String(a).replace(/^v/,''), y=String(b).replace(/^v/,''); return x.localeCompare(y,undefined,{numeric:true})>0; }
@@ -1702,6 +1713,14 @@ async function doUpdate(){ $('doUpd').disabled=true; $('doUpd').textContent='받
 $('checkUpd').onclick=()=>checkUpdate(false); $('doUpd').onclick=doUpdate;
 /* 앱 열 때 하루 1회 조용히 확인 */
 (function(){ if(location.protocol==='file:'||/claude\.ai|claudeusercontent/.test(location.hostname)){ UPD.state='na'; return; } try{ const c=JSON.parse(localStorage.getItem('gym-upd-check')||'{}'); if(c.latest&&isNewer(c.latest,APP_VERSION)){ UPD.latest=c.latest; UPD.state='new'; renderUpdBadge(); } if(!c.at||Date.now()-c.at>6*3600e3) setTimeout(()=>checkUpdate(true),1500); }catch(e){} })();
+
+/* ============ 강조 색상 (v0.17a, 기기별) ============ */
+const ACCENTS={yellow:['네온 옐로','#FFE14A'],orange:['오렌지','#FF8A3D',{'--warn':'#FFD84A'}],cyan:['시안','#3DD8FF'],pink:['핑크','#FF6B9E',{'--bad':'#FF9A3D'}],lime:['라임','#C8F135']};
+function getAccent(){ try{ const v=JSON.parse(localStorage.getItem('gym-ui')||'{}').accent; return ACCENTS[v]?v:'yellow'; }catch(e){ return 'yellow'; } }
+function applyAccent(id){ const a=ACCENTS[id]||ACCENTS.yellow, r=document.documentElement.style; r.setProperty('--accent',a[1]); r.removeProperty('--warn'); r.removeProperty('--bad'); Object.entries(a[2]||{}).forEach(([k,v])=>r.setProperty(k,v)); }
+function renderAccentPick(){ const cur=getAccent(); $('accentPick').innerHTML=Object.entries(ACCENTS).map(([id,a])=>`<button data-a="${id}" class="${id===cur?'on':''}" aria-pressed="${id===cur}"><i style="background:${a[1]}"></i>${a[0]}</button>`).join('');
+  $('accentPick').querySelectorAll('button').forEach(b=>b.onclick=()=>{ try{ localStorage.setItem('gym-ui',JSON.stringify({accent:b.dataset.a})); }catch(e){} applyAccent(b.dataset.a); renderAccentPick(); toast(`강조 색상: ${ACCENTS[b.dataset.a][0]}`); }); }
+applyAccent(getAccent());
 
 /* ============ 내비게이션 ============ */
 function showView(v){
